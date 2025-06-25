@@ -1,6 +1,6 @@
 library(pcglassoFast)
 library(glasso)
-library(space)
+library(space) # remotes::install_version("space", version = "0.1-1.1")
 estimator_space <- function(S_full, n, lambdas, data, gamma = 0, min_scale= log(0.7), max_scale =log(4)) {
   t_full <- system.time({
     p <- ncol(S_full)

@@ -3,8 +3,10 @@ source("../estimation_function.R")
 gamma <- 0.3
 n.lambda <- 100
 lambda.min.ratio = 0.03
-data(Sanger)
-X <- Sanger
+load("Sangerdata.Rdata")
+X <- data
+X$TargetID <- NULL
+X <- as.matrix(X)
 Sigma.Sanger <- cov(X)
 n <- dim(X)[1]
 

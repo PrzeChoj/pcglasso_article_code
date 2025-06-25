@@ -1,6 +1,6 @@
 #https://osf.io/dcebh/?view_only=
 load("Deidentified Data.Rdata")
-source('../')
+source("../estimation_function.R")
 graphics.off()
 library(Matrix)
 library(glasso)
