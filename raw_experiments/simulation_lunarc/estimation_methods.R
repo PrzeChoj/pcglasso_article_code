@@ -1,12 +1,12 @@
 # ---- PC-GLasso Estimator ----
-estimator_pcglasso <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas, alpha.grid, ...) {
+estimator_pcglasso <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas, alpha_grid, ...) {
   # BIC selection
   t_bic <- system.time({
     best_bic <- list(bic = Inf)
-    for (a in alpha.grid) {
+    for (a in alpha_grid) {
       path <- pcglassoPath(S_full, alpha = a, max.edge.fraction = 0.3,
                            lambda.min.ratio = min(lambdas) / max(lambdas), nlambda = length(lambdas))
-      loss <- loss.evaluation(path, Sigma = S_full, n = n, gamma = 0)
+      loss <- evaluate_loss_path(path, Sigma = S_full, n = n, gamma = 0)
       i <- which.min(loss$BIC_gamma)
       if (loss$BIC_gamma[i] < best_bic$bic) {
         best_bic <- list(alpha = a, lambda = path$lambda[i], bic = loss$BIC_gamma[i], W = path$W_path[[i]])
@@ -17,10 +17,10 @@ estimator_pcglasso <- function(S_full, S_train, S_test, n, n_train, n_test, lamb
   # CV selection
   t_cv <- system.time({
     best_cv <- list(loglik = -Inf)
-    for (a in alpha.grid) {
+    for (a in alpha_grid) {
       path <- pcglassoPath(S_train, alpha = a, max.edge.fraction = 0.3,
                            lambda.min.ratio = min(lambdas) / max(lambdas), nlambda = length(lambdas))
-      loss <- loss.evaluation(path, Sigma = S_test, n = n_test, gamma = 0)
+      loss <- evaluate_loss_path(path, Sigma = S_test, n = n_test, gamma = 0)
       j <- which.max(loss$loglik)
       if (loss$loglik[j] > best_cv$loglik) {
         best_cv <- list(alpha = a, lambda = path$lambda[j], loglik = loss$loglik[j], W = path$W_path[[j]])
@@ -38,13 +38,13 @@ estimator_pcglasso <- function(S_full, S_train, S_test, n, n_train, n_test, lamb
 estimator_glasso <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas, ...) {
   t_bic <- system.time({
     gl_full_path <- glasso::glassopath(S_full, rholist = lambdas, penalize.diagonal = FALSE)
-    loss_gl_full <- loss.evaluation(gl_full_path$wi, Sigma = S_full, n = n, gamma = 0.)
+    loss_gl_full <- evaluate_loss_path(gl_full_path$wi, Sigma = S_full, n = n, gamma = 0.)
     idx_gl_bic   <- which.min(loss_gl_full$BIC)
     Q_gl_bic     <- (gl_full_path$wi[,,idx_gl_bic] + t(gl_full_path$wi[,,idx_gl_bic])) / 2
   })
   t_cv <- system.time({
     gl_tr_path   <- glasso::glassopath(S_train, rholist = lambdas, penalize.diagonal = FALSE)
-    loss_gl_cv   <- loss.evaluation(gl_tr_path$wi, Sigma = S_test, n = n_test, gamma = 0.)
+    loss_gl_cv   <- evaluate_loss_path(gl_tr_path$wi, Sigma = S_test, n = n_test, gamma = 0.)
     idx_gl_cv    <- which.max(loss_gl_cv$loglik)
     Q_gl_cv      <- (gl_tr_path$wi[,,idx_gl_cv] + t(gl_tr_path$wi[,,idx_gl_cv])) / 2
   })
@@ -61,10 +61,10 @@ estimator_corglasso <- function(S_full, S_train, S_test, n, n_train, n_test, lam
     C_full       <- cov2cor(S_full)
     cg_full_path <- glasso::glassopath(C_full, rholist = lambdas, penalize.diagonal = FALSE)
     vars_full    <- diag(S_full)
-    loss_cg_full <- loss.evaluation(cov2cor.inv(cg_full_path$wi, 1/vars_full), Sigma = S_full,
+    loss_cg_full <- evaluate_loss_path(cov2cor_inv(cg_full_path$wi, 1/vars_full), Sigma = S_full,
                                     n = n, gamma = 0.)
     idx_cg_bic   <- which.min(loss_cg_full$BIC)
-    Theta_cg_bic <- cov2cor.inv(cg_full_path$wi[,,idx_cg_bic], 1/vars_full)
+    Theta_cg_bic <- cov2cor_inv(cg_full_path$wi[,,idx_cg_bic], 1/vars_full)
     Q_cg_bic     <- (Theta_cg_bic + t(Theta_cg_bic)) / 2
   })
   # CV
@@ -72,10 +72,10 @@ estimator_corglasso <- function(S_full, S_train, S_test, n, n_train, n_test, lam
     C_tr         <- cov2cor(S_train)
     cg_tr_path   <- glasso::glassopath(C_tr, rholist = lambdas, penalize.diagonal = FALSE)
     vars_tr      <- diag(S_train)
-    loss_cg_cv   <- loss.evaluation(cov2cor.inv(cg_tr_path$wi, 1/vars_tr), Sigma = S_test,
+    loss_cg_cv   <- evaluate_loss_path(cov2cor_inv(cg_tr_path$wi, 1/vars_tr), Sigma = S_test,
                                     n = n_test, gamma = 0.)
     idx_cg_cv    <- which.max(loss_cg_cv$loglik)
-    Theta_cg_cv  <- cov2cor.inv(cg_tr_path$wi[,,idx_cg_cv], 1/vars_tr)
+    Theta_cg_cv  <- cov2cor_inv(cg_tr_path$wi[,,idx_cg_cv], 1/vars_tr)
     Q_cg_cv      <- (Theta_cg_cv + t(Theta_cg_cv)) / 2
   })
   list(
@@ -104,11 +104,11 @@ estimator_space <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas
 
       Theta <- -sp$ParCor
       diag(Theta) <- 1
-      Theta <- cov2cor.inv(Theta ,sp$sig.fit)
-      Theta <- cov2cor.inv(Theta, 1/vars_full)
+      Theta <- cov2cor_inv(Theta ,sp$sig.fit)
+      Theta <- cov2cor_inv(Theta, 1/vars_full)
       res_space_f[,,i] <- (Theta + t(Theta)) / 2
     }
-    loss_space_full <- loss.evaluation(res_space_f, Sigma = S_full, n = n, gamma = 0)
+    loss_space_full <- evaluate_loss_path(res_space_f, Sigma = S_full, n = n, gamma = 0)
     idx_space_bic   <- which.min(loss_space_full$BIC_gamma)
     Q_space_bic     <- res_space_f[,, idx_space_bic]
     scale_bic <- scale_full[idx_space_bic]
@@ -131,11 +131,11 @@ estimator_space <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas
       #iter = 3 used in article
       Theta <- -sp$ParCor
       diag(Theta) <- 1
-      Theta <- cov2cor.inv(Theta ,sp$sig.fit)
-      Theta <- cov2cor.inv(Theta, 1/vars_full)
+      Theta <- cov2cor_inv(Theta ,sp$sig.fit)
+      Theta <- cov2cor_inv(Theta, 1/vars_full)
       res_space_t[,,i] <- (Theta + t(Theta)) / 2
     }
-    loss_space_cv <- loss.evaluation(res_space_t, Sigma = S_test, n = nrow(test), gamma = 0)
+    loss_space_cv <- evaluate_loss_path(res_space_t, Sigma = S_test, n = nrow(test), gamma = 0)
     idx_space_cv  <- which.max(loss_space_cv$loglik)
     Q_space_cv    <- res_space_t[,, idx_space_cv]
     scale_cv <- scale_tr[idx_space_cv]

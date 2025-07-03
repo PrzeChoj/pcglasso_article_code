@@ -4,7 +4,7 @@ library(space)
 source('estimation_methods.R')
 
 run_single <- function(Q, n, split_train = 0.7,
-                       alpha.grid = sort(unique(c(seq(-0.1, 0.1, length.out = 10), 0))),
+                       alpha_grid = sort(unique(c(seq(-0.1, 0.1, length.out = 10), 0))),
                        nlambda = 100, lambda.min.ratio = 0.01,
                        estimators = NULL) {
   p <- ncol(Q)
@@ -39,7 +39,7 @@ run_single <- function(Q, n, split_train = 0.7,
 
   res_list <- list()
   for (meth in names(estimators)) {
-    est <- estimators[[meth]](S_full, S_train, S_test, n, n_train, n_test, lambdas, alpha.grid=alpha.grid, data=data, train=train, test=test)
+    est <- estimators[[meth]](S_full, S_train, S_test, n, n_train, n_test, lambdas, alpha_grid=alpha_grid, data=data, train=train, test=test)
     for (sel in names(est)) {
       sel_name <- paste0(meth, "_", gsub(".*_", "", sel)) # eg "GL_bic"
       Qhat <- est[[sel]]$Q

@@ -33,13 +33,13 @@ lam_max <- 0.2*max(abs(covX - diag(diag(covX))))
 lam_min <- lambda.min.ratio * lam_max
 lambdas <- exp(seq(log(lam_max), log(lam_min), length.out = n.lambda))
 
-#alpha.grid=c(-0.1,-0.05,0,0.05,0.1,0.15,0.2)
-alpha.grid <- sort(unique(c(
+#alpha_grid=c(-0.1,-0.05,0,0.05,0.1,0.15,0.2)
+alpha_grid <- sort(unique(c(
   seq(-0.15, -0.01, length.out = 20),
   0,
   seq(0.01, 0.1, length.out = 3)
 )))
-pcglasso.res <- estimator_pcglasso(covX,n, lambdas,alpha.grid,gamma,max.edge.fraction=0.7)
+pcglasso.res <- estimator_pcglasso(covX,n, lambdas,alpha_grid,gamma,max.edge.fraction=0.7)
 
 
 bic_df <- do.call(rbind, lapply(names(pcglasso.res$path.loss), function(a) {

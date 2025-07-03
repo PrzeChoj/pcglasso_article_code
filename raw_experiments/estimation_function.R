@@ -22,12 +22,12 @@ estimator_space <- function(S_full, n, lambdas, data, gamma = 0, min_scale= log(
       )
       Theta <- -sp$ParCor
       diag(Theta) <- 1
-      Theta <- cov2cor.inv(Theta, sp$sig.fit)
-      Theta <- cov2cor.inv(Theta, 1 / vars_full)
+      Theta <- cov2cor_inv(Theta, sp$sig.fit)
+      Theta <- cov2cor_inv(Theta, 1 / vars_full)
       res_space[,,i] <- (Theta + t(Theta)) / 2
     }
 
-    loss_space <- loss.evaluation(res_space, Sigma = S_full, n = n, gamma = gamma)
+    loss_space <- evaluate_loss_path(res_space, Sigma = S_full, n = n, gamma = gamma)
   })
 
   list(
@@ -50,10 +50,10 @@ estimator_corglasso <- function(S_full, n, lambdas, gamma =0) {
 
     # Rescale to precision matrix scale
     vars_full <- diag(S_full)
-    cg_prec_path <- cov2cor.inv(cg_full_path$wi, 1 / vars_full)
+    cg_prec_path <- cov2cor_inv(cg_full_path$wi, 1 / vars_full)
 
     # Evaluate loss
-    loss_path <- loss.evaluation(cg_prec_path, Sigma = S_full, n = n, gamma = gamma)
+    loss_path <- evaluate_loss_path(cg_prec_path, Sigma = S_full, n = n, gamma = gamma)
   })
 
   list(
@@ -64,16 +64,18 @@ estimator_corglasso <- function(S_full, n, lambdas, gamma =0) {
   )
 }
 
-estimator_pcglasso <- function(S_full, n, lambdas, alpha.grid = 0, gamma = 0,max.edge.fraction =0.3) {
+estimator_pcglasso <- function(S_full, n, lambdas, alpha_grid = 0, gamma = 0, max_edge_fraction = 0.3) {
   t_full <- system.time({
     pc_path_list  <- list()
     pc_loss_list  <- list()
     pc_path_list_all <- list()
-    for (a in alpha.grid) {
-      path <- pcglassoPath(S_full,
-                           alpha             = a,
-                           max.edge.fraction = max.edge.fraction,
-                           lambdas = lambdas)
+    for (a in alpha_grid) {
+      path <- pcglassoPath(
+        S_full,
+        alpha = a,
+        max_edge_fraction = max_edge_fraction,
+        lambdas = lambdas
+      )
 
       p <- nrow(path$W[[1]])
       K <- length(path$W)
@@ -87,7 +89,7 @@ estimator_pcglasso <- function(S_full, n, lambdas, alpha.grid = 0, gamma = 0,max
       }
       pc_path_list_all[[as.character(a)]]  <- path
       pc_path_list[[as.character(a)]] <- W
-      pc_loss_list[[as.character(a)]] <- loss.evaluation(path, Sigma = S_full, n = n, gamma = gamma)
+      pc_loss_list[[as.character(a)]] <- evaluate_loss_path(path, Sigma = S_full, n = n, gamma = gamma)
     }
   })
   if(length(pc_path_list) ==1)
@@ -103,7 +105,7 @@ estimator_pcglasso <- function(S_full, n, lambdas, alpha.grid = 0, gamma = 0,max
     path       = pc_path_list,
     path.all   = pc_path_list_all,
     path.loss  = pc_loss_list,
-    alpha.grid = alpha.grid,
+    alpha_grid = alpha_grid,
     timing     = as.numeric(t_full["elapsed"])
   )
 }
@@ -115,7 +117,7 @@ estimator_glasso <- function(S_full, n, lambdas, gamma = 0) {
       capture.output({
     gl_full_path <- glasso::glassopath(S_full, rholist = lambdas, penalize.diagonal = FALSE)
     }))
-    loss_gl_full <- loss.evaluation(gl_full_path$wi, Sigma = S_full, n = n, gamma = gamma)
+    loss_gl_full <- evaluate_loss_path(gl_full_path$wi, Sigma = S_full, n = n, gamma = gamma)
   })
   list(
     path       = gl_full_path$wi,

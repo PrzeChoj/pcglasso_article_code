@@ -44,7 +44,7 @@ sim                <- 200
 nlambda            <- 50
 mc_cores           <- parallel::detectCores()
 #mc_cores <- 1L
-alpha.grid         <- 0
+alpha_grid         <- 0
 lambda.min.ratio   <- 0.01
 
 # 3) Load the appropriate Q‐matrix depending on generate.pcglasso
@@ -66,7 +66,7 @@ res <- run_experiments(
   mc_cores    = mc_cores,
   nlambda     = nlambda,
   lambda.min.ratio = lambda.min.ratio,
-  alpha.grid  = alpha.grid
+  alpha_grid  = alpha_grid
 )
 
 # 5) Save the result to a file whose name reflects the mode

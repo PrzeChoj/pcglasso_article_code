@@ -99,7 +99,7 @@ results_list <- foreach(
     lambda,
     alpha = 0,
     tolerance = 1e-4,
-    max.iter = 1000
+    max_iter = 1000
   )
   t_fortran <- (proc.time() - start_fortran)[["elapsed"]]
 

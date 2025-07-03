@@ -35,33 +35,33 @@ res <- EBICglasso(cov(networkdata), dim(networkdata)[1],returnAllResults=T)
 n.alpha <- 1
 n.lambda <- 20
 #' create grid
-alpha.grid <- c(0,-0.05,0.07)#seq(-0.1,0.02, length.out=n.alpha)
-alpha.grid <- c(0.)
+alpha_grid <- c(0,-0.05,0.07)#seq(-0.1,0.02, length.out=n.alpha)
+alpha_grid <- c(0.)
 S_max <-  max(abs(S.train[row(S.train)!= col(S.train)]))
 
 lambdas <- c(exp(seq(log(0.01*S_max), log(0.2*S_max), length.out= n.lambda)))
 hyperparam <- c()
 for(i in 1:n.alpha){
-  alphas <- rep(alpha.grid[i], n.lambda)
+  alphas <- rep(alpha_grid[i], n.lambda)
   hyperparam <- rbind(hyperparam, cbind(lambdas,alphas))
 }
 
 
 
-alpha.grid=c(-0.1,-0.05,0,0.05,0.1,0.15,0.2)
-alpha.0 <- which(alpha.grid==0)
+alpha_grid=c(-0.1,-0.05,0,0.05,0.1,0.15,0.2)
+alpha.0 <- which(alpha_grid==0)
 n <- dim(networkdata)[1]
 
 EBIC_glasso <- pcglasso.path_EBIC(networkdata,
                                   lambdas,
-                               alpha.grid,
+                               alpha_grid,
                                gamma = 0.,
                                verbose=T)
 
 
 alpha.max <- which.min(apply(EBIC_glasso$EBIC,2,min))
-res.alpha <- matrix(rep(alpha.grid, each=n.lambda), nrow=n.lambda)
-res.lambda <- matrix(rep(lambdas, length(alpha.grid)), nrow=n.lambda)
+res.alpha <- matrix(rep(alpha_grid, each=n.lambda), nrow=n.lambda)
+res.lambda <- matrix(rep(lambdas, length(alpha_grid)), nrow=n.lambda)
 results <- data.frame( loglik=c(EBIC_glasso$EBIC), alpha=c(res.alpha), lambda=c(res.lambda))
 p <- ggplot(results, aes(x = alpha, y = lambda, z = loglik)) +
   geom_contour_filled(aes(fill = after_stat(level)))  +
