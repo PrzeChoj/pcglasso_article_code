@@ -11,12 +11,12 @@ alpha <- 0
 #####
 R_rand <- matrix(rnorm(p*p), ncol = 3); R_rand <- cov2cor(R_rand %*% t(R_rand))
 pcglassoFast_ans <- pcglassoFast(
-  S = S, lambda = lambda, alpha = alpha
-  , max_iter = 10000, tolerance = 1e-8,
+  S = S, lambda = lambda, alpha = alpha,
+  max_iter = 10000, tolerance = 1e-8,
   tol_R_inner = 1e-8, tol_R_outer = 1e-8,
   max_iter_R_inner = 10000, max_iter_R_outer = 10000,
-  tol_D = 1e-8, max_iter_D_newton = 10000, max_iter_D_ls = 1000
-  , R = R_rand
+  tol_D = 1e-8, max_iter_D_newton = 10000, max_iter_D_ls = 1000,
+  R = R_rand
 )
 pcglassoFast_ans$R
 pcglassoFast_ans$D
@@ -49,3 +49,24 @@ R_opt_3 <- structure(c(
   0.0000000000000000, -0.855888708448590, 1.0000000000000000
 ), dim = c(3L, 3L))
 d_opt_3 <- c(0.664635051158816, 1.21907692669339, 0.927045213395035)
+
+
+#####
+is_optimum_BIG_PI <- function(S, lambda, alpha, D, R, R_inv = solve(R)) {
+  p <- nrow(S)
+  C_hat <- cov2cor(S)
+
+  D <- sqrt(diag(S))*D
+
+  J_prim <- matrix(rep(1, p*p), nrow = p) - diag(p)
+
+  BIG_PI <- (R_inv - diag(D) %*% C_hat %*% diag(D) - diag(alpha, p)) / lambda + diag(diag(J_prim %*% abs(R)))
+
+  BIG_PI
+}
+
+#####
+is_optimum_BIG_PI(S, lambda, alpha, D = d_opt_0, R = R_opt_0)
+is_optimum_BIG_PI(S, lambda, alpha, D = d_opt_1, R = R_opt_1)
+is_optimum_BIG_PI(S, lambda, alpha, D = d_opt_2, R = R_opt_2)
+is_optimum_BIG_PI(S, lambda, alpha, D = d_opt_3, R = R_opt_3)
