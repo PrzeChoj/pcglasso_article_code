@@ -21,7 +21,7 @@ set.seed(42)
 sim <- 100                        # Number of replications per (p, lambda) combination
 n   <- 400                        # Sample size (number of time points) for each replication
 p_vec <- c(10, 50, 100, 150)      # Different numbers of companies to test
-lambda_vec <- c(0.001, 0.01, 0.1) # Regularization parameter values
+lambda_vec <- c(0.01, 0.05, 0.1)  # Regularization parameter values
 
 # Create a grid of all parameter combinations: (p, lambda, replication)
 param_grid <- expand.grid(
@@ -166,11 +166,11 @@ fig <- ggplot(plot_data, aes(x = p, y = mean_time, color = method)) +
     y = "Mean Time (seconds)",
     color = "Method"
   ) +
-  scale_y_continuous(limits = c(0, 5.5), expand = c(0,0)) +
+  scale_y_continuous(limits = c(0, 4), expand = c(0,0)) +
   theme_minimal()
 
 print(fig)
 ggsave(
-  "./raw_experiments/simulation_stock_market.pdf", fig,
+  "./raw_experiments/stockmarket/simulation_stock_market.pdf", fig,
   width = 7.5, height = 4.7
 )
