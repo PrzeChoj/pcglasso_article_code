@@ -7,7 +7,7 @@ library(Matrix)
 library(ggplot2)
 library(dplyr)
 library(tidyr)
-library(pcglassoFast)
+library(pcglassoFast) # remotes::install_github("PrzeChoj/pcglassoFast", ref = "DOptimizationTime")
 
 # Load stock market data from the 'huge' package
 data("stockdata", package = "huge")
@@ -17,7 +17,7 @@ log_returns <- sweep(log_returns, 1, rowMeans(log_returns))
 
 # Simulation parameters
 set.seed(42)
-sim <- 100                        # Number of replications per (p, lambda) combination
+sim <- 200                        # Number of replications per (p, lambda) combination
 n   <- 400                        # Sample size (number of time points) for each replication
 p_vec <- c(50, 100, 150, 300)      # Different numbers of companies to test
 lambda_vec <- c(0.01, 0.05, 0.1)  # Regularization parameter values
@@ -75,7 +75,6 @@ results_list <- foreach(
   S <- cov(X) + diag(0.0001, p)
 
   # --- Time the Two Methods ---
-  start_exact_newton <- proc.time()
   res_exact_newton <- pcglassoFast::pcglassoFast(
     S,
     lambda,
@@ -84,10 +83,8 @@ results_list <- foreach(
     max_iter = 1000,
     diagonal_Newton = FALSE
   )
-  t_exact_newton <- (proc.time() - start_exact_newton)[["elapsed"]]
+  t_exact_newton <- res_exact_newton[["full_time_D_optim"]]
 
-  # Time pcglassoFast::pcglassoFast()
-  start_diagonal_newton <- proc.time()
   res_diagonal_newton <- pcglassoFast::pcglassoFast(
     S,
     lambda,
@@ -96,7 +93,7 @@ results_list <- foreach(
     max_iter = 1000,
     diagonal_Newton = TRUE
   )
-  t_diagonal_newton <- (proc.time() - start_diagonal_newton)[["elapsed"]]
+  t_diagonal_newton <- res_diagonal_newton[["full_time_D_optim"]]
 
   # Compute the number of nonzero off-diagonal elements (edges)
   exact_newton_nonzero <- (sum(res_exact_newton$Sinv != 0) - p) / 2
@@ -127,13 +124,18 @@ close(pb)
 results_long <- results_list %>%
   pivot_longer(
     cols = c("time_exact_newton", "time_diagonal_newton"),
-    names_to = "method",
+    names_to = "Method",
     values_to = "elapsed_time"
-  )
+  ) %>%
+  mutate(Method = ifelse(
+    Method == "time_exact_newton",
+    "Exact Newton",
+    "Diagonal Newton"
+  ))
 
 # Summarize average run times and confidence intervals by (p, lambda, method)
 plot_data <- results_long %>%
-  group_by(p, lambda, method) %>%
+  group_by(p, lambda, Method) %>%
   summarise(
     mean_time = mean(elapsed_time),
     sd_time = sd(elapsed_time),
@@ -143,31 +145,36 @@ plot_data <- results_long %>%
     upper_ci = mean_time + 1.96 * se_time,
     .groups = "drop"
   ) %>%
-  mutate(lambda = factor(lambda,
-                         levels = unique(lambda),
-                         labels = paste0("lambda == ", unique(lambda))
+  mutate(lambda = factor(
+    lambda,
+    levels = unique(lambda),
+    labels = paste0("lambda == ", unique(lambda))
   ))
 
 # Plot mean run times vs. dimension (p) for each method, faceted by lambda value
-fig <- ggplot(plot_data, aes(x = p, y = mean_time, color = method)) +
-  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = method),
+fig <- ggplot(plot_data, aes(x = p, y = mean_time, color = Method)) +
+  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = Method),
               alpha = 0.4, colour = NA, show.legend = FALSE
   ) +
-  geom_line(aes(linetype = method), linewidth = 0.4) +
+  geom_line(aes(linetype = Method), linewidth = 0.4) +
   geom_point(size = 0.4) +
   facet_wrap(~lambda, scales = "free_y", labeller = label_parsed) +
   labs(
     x = "Dimension (p)",
-    y = "Mean Time (seconds)",
+    y = "Mean Time (seconds) of D optimization",
     color = "Method"
   ) +
   scale_y_log10(
-    limits = c(0.0001, 10),
-    breaks = c(0.001, 0.1, 10),
-    labels = c("0.001", "0.1", "10")
+    limits = c(0.0003, 0.3),
+    breaks = c(0.001, 0.01, 0.1, 1),
+    labels = c("0.001", "0.01", "0.1", "1")
   ) +
   scale_x_continuous(breaks = p_vec) +
   theme_minimal()
 
 print(fig)
 
+# ggsave(
+#   "raw_experiments/stockmarket/diag_newton.png",
+#   plot = fig, width = 7, height = 4
+# )
