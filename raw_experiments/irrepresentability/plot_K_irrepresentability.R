@@ -124,7 +124,7 @@ p1 <- ggplot(mat_df, aes(x = x, y = y, fill = value)) +
   ) +
   labs(x = "c", y = "a", fill = "IRR GLASSO") +
   theme_minimal() +
-  scale_y_continuous(breaks = all_a[c(1, plot_a_breaks_scalling * (1:floor(length(all_a) / plot_a_breaks_scalling)))]) +
+  scale_y_continuous(breaks = c(all_a[1] - (all_a[2] - all_a[1]), all_a[plot_a_breaks_scalling * (1:floor(length(all_a) / plot_a_breaks_scalling))])) +
   scale_x_continuous(breaks = plot_c_breaks)
 
 mat_df$value <- case_when(
@@ -139,7 +139,7 @@ p1_two_colors <- ggplot(mat_df, aes(x = x, y = y, fill = value)) +
   )) +
   labs(x = "c", y = "a", fill = "IRR GLASSO") +
   theme_minimal() +
-  scale_y_continuous(breaks = all_a[c(1, plot_a_breaks_scalling * (1:floor(length(all_a) / plot_a_breaks_scalling)))]) +
+  scale_y_continuous(breaks = c(all_a[1] - (all_a[2] - all_a[1]), all_a[plot_a_breaks_scalling * (1:floor(length(all_a) / plot_a_breaks_scalling))])) +
   scale_x_continuous(breaks = plot_c_breaks)
 
 
@@ -159,7 +159,7 @@ p2 <- ggplot(mat_df, aes(x = x, y = y, fill = value)) +
   ) +
   labs(x = "c", y = "a", fill = "IRR PCGLASSO") +
   theme_minimal() +
-  scale_y_continuous(breaks = all_a[c(1, plot_a_breaks_scalling * (1:floor(length(all_a) / plot_a_breaks_scalling)))]) +
+  scale_y_continuous(breaks = c(all_a[1] - (all_a[2] - all_a[1]), all_a[plot_a_breaks_scalling * (1:floor(length(all_a) / plot_a_breaks_scalling))])) +
   scale_x_continuous(breaks = plot_c_breaks)
 
 mat_df$value <- case_when(
@@ -174,7 +174,7 @@ p2_two_colors <- ggplot(mat_df, aes(x = x, y = y, fill = value)) +
   )) +
   labs(x = "c", y = "a", fill = "IRR PCGLASSO") +
   theme_minimal() +
-  scale_y_continuous(breaks = all_a[c(1, plot_a_breaks_scalling * (1:floor(length(all_a) / plot_a_breaks_scalling)))]) +
+  scale_y_continuous(breaks = c(all_a[1] - (all_a[2] - all_a[1]), all_a[plot_a_breaks_scalling * (1:floor(length(all_a) / plot_a_breaks_scalling))])) +
   scale_x_continuous(breaks = plot_c_breaks)
 
 p_both <- grid.arrange(p1, p2, ncol = 1)
