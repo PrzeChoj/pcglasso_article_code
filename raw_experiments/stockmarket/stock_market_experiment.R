@@ -132,13 +132,17 @@ close(pb)
 results_long <- results_list %>%
   pivot_longer(
     cols = c("time_carter", "time_Fortran"),
-    names_to = "method",
+    names_to = "Method",
     values_to = "elapsed_time"
-  )
+  ) %>%
+  mutate(Method = ifelse(
+      Method == "time_Fortran",
+      "Coordinate Descen",
+      "Douglas–Rachfor"))
 
-# Summarize average run times and confidence intervals by (p, lambda, method)
+# Summarize average run times and confidence intervals by (p, lambda, Method)
 plot_data <- results_long %>%
-  group_by(p, lambda, method) %>%
+  group_by(p, lambda, Method) %>%
   summarise(
     mean_time = mean(elapsed_time),
     sd_time = sd(elapsed_time),
@@ -153,12 +157,12 @@ plot_data <- results_long %>%
                          labels = paste0("lambda == ", unique(lambda))
   ))
 
-# Plot mean run times vs. dimension (p) for each method, faceted by lambda value
-fig <- ggplot(plot_data, aes(x = p, y = mean_time, color = method)) +
-  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = method),
+# Plot mean run times vs. dimension (p) for each Method, faceted by lambda value
+fig <- ggplot(plot_data, aes(x = p, y = mean_time, color = Method)) +
+  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = Method),
               alpha = 0.4, colour = NA, show.legend = FALSE
   ) +
-  geom_line(aes(linetype = method), linewidth = 0.4) +
+  geom_line(aes(linetype = Method), linewidth = 0.4) +
   geom_point(size = 0.4) +
   facet_wrap(~lambda, scales = "free_y", labeller = label_parsed) +
   labs(
@@ -166,11 +170,16 @@ fig <- ggplot(plot_data, aes(x = p, y = mean_time, color = method)) +
     y = "Mean Time (seconds)",
     color = "Method"
   ) +
-  scale_y_continuous(limits = c(0, 4), expand = c(0,0)) +
+  scale_y_log10(
+    limits = c(0.001, 5),
+    breaks = c(0.001, 0.01, 0.1, 1, 5),
+    labels = c("0.001", "0.01", "0.1", "1", "5")
+  ) +
   theme_minimal()
 
 print(fig)
-ggsave(
-  "./raw_experiments/stockmarket/simulation_stock_market.pdf", fig,
-  width = 7.5, height = 4.7
-)
+
+# ggsave(
+#   "./raw_experiments/stockmarket/simulation_stock_market.png", fig,
+#   width = 7.5, height = 4.7
+# )
