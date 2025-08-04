@@ -1,4 +1,4 @@
-# 3.3 minutes on 7 cores of Apple M2
+# 2 minutes on 7 cores of Apple M2
 
 library(pcglassoFast)
 library(parallel)
@@ -31,6 +31,7 @@ KAR <- function(p, a, b, c) {
   K <- matrix(0, nrow = p, ncol = p)
   diag(K) <- b
   K[1, 1] <- a
+  K[p, p] <- a
 
   for (i in 2:p) {
     K[i-1, i] <- K[i, i-1] <- c
