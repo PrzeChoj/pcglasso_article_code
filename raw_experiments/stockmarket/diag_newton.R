@@ -7,7 +7,15 @@ library(Matrix)
 library(ggplot2)
 library(dplyr)
 library(tidyr)
-library(pcglassoFast) # remotes::install_github("PrzeChoj/pcglassoFast", ref = "DOptimizationTime")
+
+# remotes::install_github("PrzeChoj/pcglassoFast", ref = "DOptimizationTime")
+library(pcglassoFast)
+
+# test whether proper pcglassoFast package version is installed
+if (!("full_time_D_optim" %in% names(pcglassoFast(S = matrix(c(1.1, 0, 0, 1.1), nrow = 2), 0.1, 0.1)))) {
+  stop('Special version of `pcglassoFast` package is needed for this script: `remotes::install_github("PrzeChoj/pcglassoFast", ref = "DOptimizationTime")`')
+}
+
 
 # Load stock market data from the 'huge' package
 data("stockdata", package = "huge")
@@ -19,7 +27,7 @@ log_returns <- sweep(log_returns, 1, rowMeans(log_returns))
 set.seed(42)
 sim <- 200                        # Number of replications per (p, lambda) combination
 n   <- 400                        # Sample size (number of time points) for each replication
-p_vec <- c(50, 100, 150, 300)      # Different numbers of companies to test
+p_vec <- c(50, 100, 150, 300)     # Different numbers of companies to test
 lambda_vec <- c(0.01, 0.05, 0.1)  # Regularization parameter values
 
 # Create a grid of all parameter combinations: (p, lambda, replication)
@@ -153,8 +161,9 @@ plot_data <- results_long %>%
 
 # Plot mean run times vs. dimension (p) for each method, faceted by lambda value
 fig <- ggplot(plot_data, aes(x = p, y = mean_time, color = Method)) +
-  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = Method),
-              alpha = 0.4, colour = NA, show.legend = FALSE
+  geom_ribbon(
+    aes(ymin = lower_ci, ymax = upper_ci, fill = Method),
+    alpha = 0.4, colour = NA, show.legend = FALSE
   ) +
   geom_line(aes(linetype = Method), linewidth = 0.4) +
   geom_point(size = 0.4) +
