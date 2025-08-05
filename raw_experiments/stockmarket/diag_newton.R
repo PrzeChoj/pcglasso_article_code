@@ -28,12 +28,12 @@ set.seed(42)
 sim <- 200                        # Number of replications per (p, lambda) combination
 n   <- 400                        # Sample size (number of time points) for each replication
 p_vec <- c(50, 100, 150, 300)     # Different numbers of companies to test
-lambda_vec <- c(0.01, 0.05, 0.1)  # Regularization parameter values
+alpha_vec <- c(-1, 0, 0.9)
 
 # Create a grid of all parameter combinations: (p, lambda, replication)
 param_grid <- expand.grid(
   p = p_vec,
-  lambda = lambda_vec,
+  alpha = alpha_vec,
   rep_iter = seq_len(sim),
   KEEP.OUT.ATTRS = FALSE,
   stringsAsFactors = FALSE
@@ -48,7 +48,7 @@ pb <- txtProgressBar(min = 0, max = num_jobs, style = 3)
 progress <- function(n) setTxtProgressBar(pb, n)
 opts <- list(progress = progress)
 
-# MAIN PARALLEL LOOP: iterate over all (p, lambda, replication) combinations
+# MAIN PARALLEL LOOP: iterate over all (p, alpha, replication) combinations
 results_list <- foreach(
   i = seq_len(num_jobs),
   .combine = rbind,
@@ -57,7 +57,8 @@ results_list <- foreach(
 ) %dopar% {
   # Extract current simulation parameters
   p <- param_grid$p[i]
-  lambda <- param_grid$lambda[i]
+  lambda <- 0.1
+  alpha <- param_grid$alpha[i]
   rep_iter <- param_grid$rep_iter[i]
 
   # --- Data Processing using Stock Market Data ---
@@ -86,7 +87,7 @@ results_list <- foreach(
   res_exact_newton <- pcglassoFast::pcglassoFast(
     S,
     lambda,
-    alpha = 0,
+    alpha = alpha,
     tolerance = 1e-4,
     max_iter = 1000,
     diagonal_Newton = FALSE
@@ -96,7 +97,7 @@ results_list <- foreach(
   res_diagonal_newton <- pcglassoFast::pcglassoFast(
     S,
     lambda,
-    alpha = 0,
+    alpha = alpha,
     tolerance = 1e-4,
     max_iter = 1000,
     diagonal_Newton = TRUE
@@ -114,7 +115,7 @@ results_list <- foreach(
   # Return simulation results for this iteration as a one-row data frame
   data.frame(
     p = p,
-    lambda = lambda,
+    alpha = alpha,
     replication = rep_iter,
     time_exact_newton = t_exact_newton,
     time_diagonal_newton = t_diagonal_newton,
@@ -143,7 +144,7 @@ results_long <- results_list %>%
 
 # Summarize average run times and confidence intervals by (p, lambda, method)
 plot_data <- results_long %>%
-  group_by(p, lambda, Method) %>%
+  group_by(p, alpha, Method) %>%
   summarise(
     mean_time = mean(elapsed_time),
     sd_time = sd(elapsed_time),
@@ -153,10 +154,10 @@ plot_data <- results_long %>%
     upper_ci = mean_time + 1.96 * se_time,
     .groups = "drop"
   ) %>%
-  mutate(lambda = factor(
-    lambda,
-    levels = unique(lambda),
-    labels = paste0("lambda == ", unique(lambda))
+  mutate(alpha = factor(
+    alpha,
+    levels = unique(alpha),
+    labels = paste0("alpha == ", unique(alpha))
   ))
 
 # Plot mean run times vs. dimension (p) for each method, faceted by lambda value
@@ -167,7 +168,7 @@ fig <- ggplot(plot_data, aes(x = p, y = mean_time, color = Method)) +
   ) +
   geom_line(aes(linetype = Method), linewidth = 0.4) +
   geom_point(size = 0.4) +
-  facet_wrap(~lambda, scales = "free_y", labeller = label_parsed) +
+  facet_wrap(~alpha, scales = "free_y", labeller = label_parsed) +
   labs(
     x = "Dimension (p)",
     y = "Mean Time (seconds) of D optimization",
