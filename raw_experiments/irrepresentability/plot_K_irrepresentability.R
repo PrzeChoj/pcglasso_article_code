@@ -115,13 +115,16 @@ colnames(mat_df) <- c("x", "y", "value")
 mat_df$x <- all_c[mat_df$x]
 mat_df$y <- all_a[mat_df$y]
 
+max_IRR <- c(2, 4)[which_graph]
+
 p1 <- ggplot(mat_df, aes(x = x, y = y, fill = value)) +
   geom_tile() +
   scale_fill_gradient2(
     low = "green",
     mid = "white",
     high = "red",
-    midpoint = 1
+    midpoint = 1,
+    limits = c(0, max_IRR)
   ) +
   labs(x = "c", y = "a", fill = "IRR GLASSO") +
   theme_minimal() +
@@ -156,7 +159,8 @@ p2 <- ggplot(mat_df, aes(x = x, y = y, fill = value)) +
     low = "green",
     mid = "white",
     high = "red",
-    midpoint = 1
+    midpoint = 1,
+    limits = c(0, max_IRR)
   ) +
   labs(x = "c", y = "a", fill = "IRR PCGLASSO") +
   theme_minimal() +
@@ -179,7 +183,7 @@ p2_two_colors <- ggplot(mat_df, aes(x = x, y = y, fill = value)) +
   scale_x_continuous(breaks = plot_c_breaks)
 
 p_both <- grid.arrange(p1, p2, ncol = 1)
-p_both
+print(p_both)
 
 ggsave(
   paste0(
@@ -190,7 +194,7 @@ ggsave(
 
 
 p_both_two_colors <- grid.arrange(p1_two_colors, p2_two_colors, ncol = 1)
-p_both_two_colors
+print(p_both_two_colors)
 
 ggsave(
   paste0(
