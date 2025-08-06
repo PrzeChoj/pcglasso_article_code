@@ -13,7 +13,7 @@ R_rand <- matrix(rnorm(p*p), ncol = 3); R_rand <- cov2cor(R_rand %*% t(R_rand))
 pcglassoFast_ans <- pcglassoFast(
   S = S, lambda = lambda, alpha = alpha,
   max_iter = 10000, tolerance = 1e-8,
-  tol_R_inner = 1e-8, tol_R_outer = 1e-8,
+  tol_R = 1e-8,
   max_iter_R_inner = 10000, max_iter_R_outer = 10000,
   tol_D = 1e-8, max_iter_D_newton = 10000, max_iter_D_ls = 1000,
   R = R_rand
@@ -24,7 +24,7 @@ pcglassoFast_ans$D
 pcglassoFast_ans2 <- pcglassoFast(
   S = S, lambda = lambda, alpha = alpha,
   max_iter = 10000, tolerance = 1e-18,
-  tol_R_inner = 1e-8, tol_R_outer = 1e-8,
+  tol_R = 1e-8,
   max_iter_R_inner = 10000, max_iter_R_outer = 10000,
   tol_D = 1e-8, max_iter_D_newton = 10000, max_iter_D_ls = 1000,
   R = pcglassoFast_ans$R, R_inv = pcglassoFast_ans$R_inv, D = pcglassoFast_ans$D
