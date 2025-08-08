@@ -31,6 +31,13 @@ mean_is_good_pattern <- function(S_est_list, pattern, tol = 0.0001) {
   mean(sapply(S_est_list, function(S) {is_good_pattern(S, pattern, tol)}))
 }
 
+Khub <- function(p, a, b, c) {
+  K <- matrix(0, nrow = p, ncol = p)
+  K[, 1] <- K[1, ] <- c
+  diag(K) <- b
+  K[1, 1] <- a
+  K
+}
 KAR <- function(p, a, b, c) {
   K <- matrix(0, nrow = p, ncol = p)
   diag(K) <- b
@@ -43,120 +50,131 @@ KAR <- function(p, a, b, c) {
 
   K
 }
-Khub <- function(p, a, b, c) {
-  K <- matrix(0, nrow = p, ncol = p)
-  K[, 1] <- K[1, ] <- c
-  diag(K) <- b
-  K[1, 1] <- a
-  K
-}
 
 is_K_positive_definite <- function(K) {
   min(eigen(K, TRUE, TRUE)$values) > 0.00001
 }
 
-which_K <- 1 # 1 -> Hub, 2 -> AR
-n <- 400
-p <- 150
-a <- c(250, 3)[which_K]
-b <- 1
-c_val <- c(1.2, 0.46)[which_K]
+which_experiment <- 3 # 1 -> Sanger, 2 -> Hub, 3 -> AR,
+S <- if(which_experiment == 1) {
+  data(Sanger)
+  cov(Sanger)
+} else {
+  n <- 400
+  p <- 150
+  a <- c(NA, 250, 3)[which_experiment]
+  b <- 1
+  c_val <- c(NA, 1.2, 0.46)[which_experiment]
 
-K <- list(Khub, KAR)[[which_K]](p, a, b, c_val)
-stopifnot(is_K_positive_definite(K))
+  K <- list(NA, Khub, KAR)[[which_experiment]](p, a, b, c_val)
+  stopifnot(is_K_positive_definite(K))
 
-K_pattern <- sign(K)
+  K_pattern <- sign(K)
 
-X <- draw_normal(n, K)
-S <- cov(X)
+  X <- draw_normal(n, K)
+  cov(X)
+}
+times <- c(1, 10, 10)[which_experiment]
 
 
-alpha <- 4/20
+alpha <- 0.2
 nlambda <- 100
 lam_max <- max(abs(S - diag(diag(S))))
 lam_min <- 0.0001 * lam_max
 lambdas <- exp(seq(log(lam_max), log(lam_min), length.out = nlambda))
 
-# paths:
-ud <- function(){
-  R0_big_lambda <- diag(nrow(S))
-  R0_inv_big_lambda <- solve(R0_big_lambda)
 
-  pcglassoPath(S, alpha, lambdas = lambdas, R0 = R0_big_lambda, R0_inv = R0_inv_big_lambda)
-}
-du <- function(){
-  R0_inv_small_lambda <- cov2cor(S)
-  R0_small_lambda <- solve(R0_inv_small_lambda)
 
-  pcglassoPath(S, alpha, lambdas = rev(lambdas), R0 = R0_small_lambda, R0_inv = R0_inv_small_lambda)
-}
-du2 <- function(){
-  R0 <- cov2cor(solve(S))
-  R0_inv <- solve(R0)
+source("./raw_experiments/starting_point/paths_functions.R")
 
-  pcglassoPath(S, alpha, lambdas = rev(lambdas), R0 = R0, R0_inv = R0_inv)
-}
-du3 <- function(){
-  R0 <- cov2cor(S)
-  R0_inv <- solve(R0)
-
-  pcglassoPath(S, alpha, lambdas = rev(lambdas), R0 = R0, R0_inv = R0_inv)
-}
-du4 <- function(){
-  R0 <- diag(nrow(S)) # identity
-
-  pcglassoPath(S, alpha, lambdas = rev(lambdas), R0 = R0, R0_inv = R0)
-}
-
-# 6 minutes
+# some minutes
 microbenchmark(
-  du(), du2(), du3(), du4(),
-  times = 1
+  du(S, alpha, lambdas),
+  du2(S, alpha, lambdas),
+  du3(S, alpha, lambdas),
+  du4(S, alpha, lambdas),
+  times = times
 )
+# which_experiment == 1, Sanger data:
 # Unit: seconds
 # expr       min       lq     mean   median       uq      max neval
-# du()  1.602924 1.712574 1.739019 1.721601 1.823328 1.831777    10
-# du2() 2.319419 2.330720 2.491350 2.536469 2.577352 2.650607    10
-# du3() 2.250306 2.353569 2.511989 2.469458 2.686703 2.900138    10
-# du4() 2.345895 2.449619 2.540990 2.515586 2.664263 2.784367    10
+# du()  24.14990 24.14990 24.14990 24.14990 24.14990 24.14990     1
+# du2() 65.84658 65.84658 65.84658 65.84658 65.84658 65.84658     1
+# du3() 66.34271 66.34271 66.34271 66.34271 66.34271 66.34271     1
+# du4() 69.49258 69.49258 69.49258 69.49258 69.49258 69.49258     1
 
-# 2 minutes
+# which_experiment == 2, Hub:
+# Unit: seconds
+# expr       min       lq     mean   median       uq      max neval
+# du()  5.021417 5.134240 5.227172 5.235393 5.288931 5.378933    10
+# du2() 6.823953 6.846655 6.952709 6.910798 7.016368 7.184668    10
+# du3() 6.840238 6.996360 7.109834 7.177190 7.185860 7.362256    10
+# du4() 6.963243 7.066019 7.150748 7.178869 7.235403 7.347942    10
+
+# which_experiment == 3, AR:
+# Unit: seconds
+# expr       min       lq     mean   median       uq      max neval
+# du()  5.851331 5.918153 6.200424 6.106685 6.440266 6.757789    10
+# du2() 5.523438 5.591263 5.988948 5.934354 6.304790 6.672629    10
+# du3() 5.925678 6.056490 6.278462 6.161392 6.549268 6.820546    10
+# du4() 5.761309 5.960301 6.075738 6.100656 6.191135 6.321865    10
+
+
+#####
+# some minutes
 microbenchmark(
-  du(), ud(),
-  times = 10
+  du(S, alpha, lambdas),
+  ud(S, alpha, lambdas),
+  times = times
 )
+# which_experiment == 1, Sanger data:
 # Unit: seconds
 # expr      min       lq     mean   median       uq      max neval
-# du() 1.598145 1.602527 1.791756 1.746490 1.872572 2.270280    10
-# ud() 2.065285 2.075605 2.220882 2.178658 2.383253 2.503978    10
+# du() 23.92645 23.92645 23.92645 23.92645 23.92645 23.92645     1
+# ud() 54.82631 54.82631 54.82631 54.82631 54.82631 54.82631     1
 
-udu <- function(){
-  R0_big_lambda <- diag(nrow(S))
-  R0_inv_big_lambda <- solve(R0_big_lambda)
+# which_experiment == 2, Hub:
+# Unit: seconds
+# expr      min       lq     mean   median       uq      max neval
+# du() 5.017217 5.117969 5.236935 5.290921 5.325416 5.382931    10
+# ud() 6.218553 6.372678 6.551896 6.513973 6.708809 6.919347    10
 
-  ud_path <- pcglassoPath(S, alpha, lambdas = lambdas, R0 = R0_big_lambda, R0_inv = R0_inv_big_lambda)
-  pcglassoPath(S, alpha, lambdas = lambdas, R0 = ud_path$R_path[[nlambda]], R0_inv = ud_path$Ri_path[[nlambda]])
-}
-dud <- function(){
-  R0_inv_small_lambda <- cov2cor(S)
-  R0_small_lambda <- solve(R0_inv_small_lambda)
+# which_experiment == 3, AR:
+# Unit: seconds
+# expr      min       lq     mean   median       uq      max neval
+# du() 5.551907 5.678631 5.895191 5.742018 6.198952 6.322515    10
+# ud() 5.277002 5.289476 5.462313 5.418437 5.571002 5.903453    10
 
-  du_path <- pcglassoPath(S, alpha, lambdas = rev(lambdas), R0 = R0_small_lambda, R0_inv = R0_inv_small_lambda)
-  pcglassoPath(S, alpha, lambdas = rev(lambdas), R0 = du_path$R_path[[nlambda]], R0_inv = du_path$Ri_path[[nlambda]])
-}
+#####
 
-# 6 minutes
+
+# some minutes
 microbenchmark(
-  udu(), dud(), {ud(); du()},
-  times = 10
+  { ud(S, alpha, lambdas); du(S, alpha, lambdas) },
+  dud(S, alpha, lambdas),
+  udu(S, alpha, lambdas),
+  times = times
 )
+# which_experiment == 1, Sanger data:
+# Unit: seconds
+# expr                min        lq      mean    median        uq       max neval
+# { ud(); du() } 78.16442  78.16442  78.16442  78.16442  78.16442  78.16442     1
+# dud()          94.20995  94.20995  94.20995  94.20995  94.20995  94.20995     1
+# udu()         107.68915 107.68915 107.68915 107.68915 107.68915 107.68915     1
+
+# which_experiment == 2, Hub:
 # Unit: seconds
 # expr                min       lq     mean   median       uq      max neval
-# udu()          4.206750 4.281121 4.503893 4.475127 4.739928 4.861764    10
-# dud()          4.005379 4.182431 4.376780 4.413087 4.553913 4.832931    10
-# { ud(); du() } 3.661175 3.896683 4.070793 4.048479 4.207639 4.409770    10
+# { ud(); du() } 11.10811 11.28072 13.84569 11.38007 11.56512 27.68010    10
+# dud()          11.78827 12.15967 13.90151 12.33848 12.78654 26.01385    10
+# udu()          12.43207 12.72229 13.98820 12.89214 12.99030 24.43083    10
 
-
+# which_experiment == 3, AR:
+# Unit: seconds
+# expr                min       lq     mean   median       uq      max neval
+# { ud(); du() } 10.76450 10.91750 11.13102 11.12650 11.27459 11.51221    10
+# dud()          11.47326 11.53124 11.83025 11.82397 11.97280 12.38797    10
+# udu()          10.33583 10.70178 10.85227 10.77036 11.11216 11.27507    10
 
 
 #####
