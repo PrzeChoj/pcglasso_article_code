@@ -56,7 +56,10 @@ create_benchmark_plot <- function(data, title) {
     geom_line(aes(linetype = Method), linewidth = 0.6) +
     geom_point(size = 1.5) +
     facet_grid(experiment_label ~ alpha_label, labeller = label_parsed, scales = "free_y") +
-    scale_y_log10() +
+    scale_y_log10(
+      breaks = c(0.0001, 0.001, 0.01, 0.1, 0.3, 1, 3, 10, 30),
+      limits = function(cur_lims) {c(0.06, cur_lims[2])}
+    ) +
     labs(
       title    = title,
       subtitle = "Mean execution time across different matrix types and parameters",
@@ -77,22 +80,16 @@ create_benchmark_plot <- function(data, title) {
     )
 }
 
-# Plot 1: All 'du' variants
-plot1_data <- plot_data %>% filter(Method %in% c("du", "du2", "du3", "du4"))
-plot1 <- create_benchmark_plot(plot1_data, "Performance of 'du' variants")
+# Plot 1:
+plot1_data <- plot_data %>% filter(Method %in% c("ud", "du", "du2", "du3", "du4"))
+plot1 <- create_benchmark_plot(plot1_data, "Performance of 'ud' and 'du' variants")
 
-# Plot 2: Plain 'du' versus 'ud'
-plot2_data <- plot_data %>% filter(Method %in% c("du", "ud"))
-plot2 <- create_benchmark_plot(plot2_data, "Performance Comparison: 'du' vs 'ud'")
-
-# Plot 3: Combined/iterated functions
-plot3_data <- plot_data %>% filter(Method %in% c("udu", "dud", "du and ud"))
-plot3 <- create_benchmark_plot(plot3_data, "Performance of Combined Functions")
+# Plot 2:
+plot2_data <- plot_data %>% filter(Method %in% c("udu", "dud", "du and ud"))
+plot2 <- create_benchmark_plot(plot2_data, "Performance of Combined Functions")
 
 print(plot1)
 print(plot2)
-print(plot3)
 
-# ggsave("plot1_du_variants.png", plot1, width = 12, height = 8, dpi = 300)
-# ggsave("plot2_du_vs_ud.png",  plot2, width = 12, height = 8, dpi = 300)
-# ggsave("plot3_combined.png",  plot3, width = 12, height = 8, dpi = 300)
+# ggsave("./raw_experiments/starting_point/path_plot1.png", plot1, width = 5, height = 5, dpi = 300)
+# ggsave("./raw_experiments/starting_point/path_plot2.png",  plot2, width = 5, height = 5, dpi = 300)

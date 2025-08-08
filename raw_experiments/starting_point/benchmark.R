@@ -76,4 +76,4 @@ stopCluster(cl)
 close(pb)
 
 
-saveRDS(results_df, "./raw_experiments/starting_point/benchmark_results.rds")
+# saveRDS(results_df, "./raw_experiments/starting_point/benchmark_results.rds")
