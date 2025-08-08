@@ -10,10 +10,10 @@ source("./raw_experiments/starting_point/paths_functions.R")
 
 set.seed(42)
 #p_values <- c(10, 30, 50, 100)
-p_values <- c(10, 30)
-alpha_values <- c(-1, 0, 0.9)
+p_values <- c(10, 20, 30)
+alpha_values <- c(-0.1, 0, 0.2)
 experiment_values <- 1:4
-replications <- 1
+replications <- 10
 
 param_grid <- expand.grid(
   p = p_values,
