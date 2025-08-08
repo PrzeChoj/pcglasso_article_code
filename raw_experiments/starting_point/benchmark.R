@@ -10,10 +10,10 @@ source("./raw_experiments/starting_point/paths_functions.R")
 
 set.seed(42)
 #p_values <- c(10, 30, 50, 100)
-p_values <- c(10, 20, 30)
+p_values <- c(10, 20, 30, 40, 50)
 alpha_values <- c(-0.1, 0, 0.2)
 experiment_values <- 1:4
-replications <- 10
+replications <- 30
 
 param_grid <- expand.grid(
   p = p_values,
@@ -77,4 +77,4 @@ stopCluster(cl)
 close(pb)
 
 
-# saveRDS(results_df, "./raw_experiments/starting_point/benchmark_results.rds")
+saveRDS(results_df, "./raw_experiments/starting_point/benchmark_results.rds")
