@@ -4,7 +4,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 
-results_file <- "./raw_experiments/starting_point/benchmark_results.rds"
+results_file <- "./raw_experiments/path_analysis/benchmark_results.rds"
 if (!file.exists(results_file)) {
   stop(paste(
     "Error: The data file was not found.",
@@ -91,5 +91,5 @@ plot2 <- create_benchmark_plot(plot2_data, "Performance of Combined Functions")
 print(plot1)
 print(plot2)
 
-# ggsave("./raw_experiments/starting_point/path_plot1.png", plot1, width = 5, height = 5, dpi = 300)
-# ggsave("./raw_experiments/starting_point/path_plot2.png",  plot2, width = 5, height = 5, dpi = 300)
+# ggsave("./raw_experiments/path_analysis/path_plot1.png", plot1, width = 5, height = 5, dpi = 300)
+# ggsave("./raw_experiments/path_analysis/path_plot2.png",  plot2, width = 5, height = 5, dpi = 300)

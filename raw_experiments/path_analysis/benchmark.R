@@ -3,8 +3,8 @@ library(foreach)
 library(doSNOW)
 library(snow)
 
-source("./raw_experiments/starting_point/get_S.R")
-source("./raw_experiments/starting_point/paths_functions.R")
+source("./raw_experiments/path_analysis/get_S.R")
+source("./raw_experiments/path_analysis/paths_functions.R")
 
 
 
@@ -76,4 +76,4 @@ stopCluster(cl)
 close(pb)
 
 
-# saveRDS(results_df, "./raw_experiments/starting_point/benchmark_results.rds")
+# saveRDS(results_df, "./raw_experiments/path_analysis/benchmark_results.rds")
