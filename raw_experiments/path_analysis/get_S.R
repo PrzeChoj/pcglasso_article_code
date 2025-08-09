@@ -26,7 +26,7 @@ KAR <- function(p, a, b, c_val) {
 }
 
 # 3 -> Sanger
-data("Sanger")
+data("Sanger", package = "pcglassoFast")
 
 # 4 -> Stock Market
 data("stockdata", package = "huge")

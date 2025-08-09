@@ -45,6 +45,14 @@ du4 <- function(S, alpha){
 
   pcglassoFast::pcglassoPath(S, alpha, lambdas = rev(lambdas), R0 = R0, R0_inv = R0)
 }
+du5 <- function(S, alpha){
+  # proper solution for alpha = 0
+  lambdas <- get_lambdas(S)
+
+  R0 <- cov2cor(solve(cov2cor(S)))
+
+  pcglassoFast::pcglassoPath(S, alpha, lambdas = rev(lambdas), R0 = R0, R0_inv = solve(R0))
+}
 
 udu <- function(S, alpha){
   lambdas <- get_lambdas(S)
