@@ -67,7 +67,7 @@ get_S <- function(p, which_experiment) {
     { # Sanger
       stopifnot(p <= 100)
 
-      p_max <- 124
+      p_max <- 123
       selected <- sample(p_max, p)
       Sanger_selected <- Sanger[, selected]
 

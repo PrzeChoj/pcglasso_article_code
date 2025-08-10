@@ -1,5 +1,5 @@
 get_lambdas <- function(S, nlambda = 100, min_lambda_ratio = 0.0001){
-  lam_max <- max(abs(S - diag(diag(S))))
+  lam_max <- max(abs(cov2cor(S) - diag(nrow(S))))
   lam_min <- min_lambda_ratio * lam_max
 
   exp(seq(log(lam_max), log(lam_min), length.out = nlambda))
@@ -9,10 +9,9 @@ get_lambdas <- function(S, nlambda = 100, min_lambda_ratio = 0.0001){
 ud <- function(S, alpha){
   lambdas <- get_lambdas(S)
 
-  R0_big_lambda <- diag(nrow(S))
-  R0_inv_big_lambda <- solve(R0_big_lambda)
+  R0 <- diag(nrow(S)) # identity
 
-  pcglassoFast::pcglassoPath(S, alpha, lambdas = lambdas, R0 = R0_big_lambda, R0_inv = R0_inv_big_lambda)
+  pcglassoFast::pcglassoPath(S, alpha, lambdas = lambdas, R0 = R0, R0_inv = R0)
 }
 du <- function(S, alpha){
   lambdas <- get_lambdas(S)
