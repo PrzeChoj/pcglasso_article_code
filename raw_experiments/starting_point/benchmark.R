@@ -56,12 +56,14 @@ results_df <- foreach(
 
   S <- get_S(p = p_val, which_experiment = exp_val)
 
-  tud  <- timed(path_up_down(S, alpha_val, lambda_val));    time_path_ud      <- tud$time;  res_path_ud      <- tud$res
-  tudu <- timed(path_up_down_up(S, alpha_val, lambda_val)); time_path_udu     <- tudu$time; res_path_udu     <- tudu$res
   ti   <- timed(start_I(S, alpha_val, lambda_val));         time_start_I      <- ti$time;   res_start_I      <- ti$res
   tc   <- timed(start_cor(S, alpha_val, lambda_val));       time_start_cor    <- tc$time;   res_start_cor    <- tc$res
   tg   <- timed(start_glasso(S, alpha_val, lambda_val));    time_start_glasso <- tg$time;   res_start_glasso <- tg$res
   tL2  <- timed(start_L2(S, alpha_val, lambda_val));        time_start_L2     <- tL2$time;  res_start_L2     <- tL2$res
+
+  res_udu <- path_up_down_up(S, alpha, lambda)
+  time_path_ud <- res_udu$time_ud; res_path_ud <- res_udu$res_ud
+  time_path_udu <- res_udu$time_udu; res_path_udu <- res_udu$res_udu
 
   data.frame(
     p = p_val,

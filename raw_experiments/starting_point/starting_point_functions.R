@@ -1,58 +1,96 @@
-path_up_down <- function(S, alpha, lambda) {
+path_up_down_part <- function(S, alpha, lambda) {
   nlambda <- 50
 
-  lam_max <- max(abs(S - diag(diag(S))))
+  lam_max <- max(abs(cov2cor(S) - diag(nrow(S))))
   lam_min <- 0.0001 * lam_max
   lambdas <- exp(seq(log(lam_max), log(lam_min), length.out = nlambda))
 
   lambdas <- lambdas[lambdas > lambda]
-
-  res <- if (length(lambdas) >= 1) {
-    R0 <- diag(nrow(S))
-    path_sol <- pcglassoFast::pcglassoPath(S, alpha, lambdas = lambdas, R0 = R0, R0_inv = R0)
-
-    R <- path_sol$W_path[[length(lambdas)]]
-    R_inv <- path_sol$Wi_path[[length(lambdas)]]
-    pcglassoFast::pcglassoFast(S, lambda, alpha, R = R, R_inv = R_inv)
-  } else {
-    pcglassoFast::pcglassoFast(S, lambda, alpha)
+  if (length(lambdas) == 0){
+    return(list(
+      path_ud = NA,
+      pcg_sol = pcglassoFast::pcglassoFast(S, lambda, alpha)
+    ))
   }
 
-  res$loss[length(res$loss)]
-}
-
-path_up_down_up <- function(S, alpha, lambda) {
-  nlambda <- 50
-
-  lam_max <- max(abs(S - diag(diag(S))))
-  lam_min <- 0.0001 * lam_max
-  lambdas <- exp(seq(log(lam_max), log(lam_min), length.out = nlambda))
-
-  # path up down
   R0 <- diag(nrow(S))
   path_ud <- pcglassoFast::pcglassoPath(S, alpha, lambdas = lambdas, R0 = R0, R0_inv = R0)
 
-  closest_lambda_index <- which.min(abs(lambdas - lambda))
+  R <- path_ud$R_path[[length(lambdas)]]
+  R_inv <- path_ud$Ri_path[[length(lambdas)]]
+  pcg_sol <- pcglassoFast::pcglassoFast(S, lambda, alpha, R = R, R_inv = R_inv)
 
-  R <- path_ud$W_path[[closest_lambda_index]]
-  R_inv <- path_ud$Wi_path[[closest_lambda_index]]
+  list(
+    path_ud = path_ud,
+    pcg_sol = pcg_sol
+  )
+}
 
-  sol_ud <- pcglassoFast::pcglassoFast(S, lambda, alpha, R = R, R_inv = R_inv)
+path_part_up_down_full_down_up <- function(S, alpha, lambda, path_ud_part) {
+  nlambda <- 50
+  lam_max <- max(abs(cov2cor(S) - diag(nrow(S))))
+  lam_min <- 0.0001 * lam_max
+  lambdas <- exp(seq(log(lam_max), log(lam_min), length.out = nlambda))
+  lambdas <- lambdas[lambdas <= lambda]
 
-  # path down up
-  R <- path_ud$W_path[[length(lambdas)]]
-  R_inv <- path_ud$Wi_path[[length(lambdas)]]
+  # I know that length(lambdas) > 1
 
-  lambdas <- rev(lambdas)
-  lambdas <- lambdas[lambdas < lambda]
+  path_ud <- if (length(lambdas) == 50) {
+    R0 <- diag(nrow(S))
+    pcglassoFast::pcglassoPath(S, alpha, lambdas = lambdas, R0 = R0, R0_inv = R0)
+  } else {
+    # 1 <= length(lambdas) < 50
+    R0 <- path_ud_part$R_path[[length(path_ud_part$W_path)]]
+    R0_inv <- path_ud_part$Ri_path[[length(path_ud_part$Wi_path)]]
+    pcglassoFast::pcglassoPath(S, alpha, lambdas = lambdas, R0 = R0, R0_inv = R0_inv)
+  }
 
-  path_du <- pcglassoFast::pcglassoPath(S, alpha, lambdas = lambdas, R0 = R, R0_inv = R_inv)
+  nlambda <- 50
+  lam_max <- max(abs(cov2cor(S) - diag(nrow(S))))
+  lam_min <- 0.0001 * lam_max
+  lambdas <- rev(exp(seq(log(lam_max), log(lam_min), length.out = nlambda))) # down up
+  lambdas <- lambdas[lambdas <= lambda]
 
-  R <- path_du$W_path[[length(lambdas)]]
-  R_inv <- path_du$Wi_path[[length(lambdas)]]
-  sol_du <- pcglassoFast::pcglassoFast(S, lambda, alpha, R = R, R_inv = R_inv)
+  # now I know that 1 <= length(lambdas)
+  R0 <- path_ud$R_path[[length(path_ud$R_path)]]
+  R0_inv <- path_ud$Ri_path[[length(path_ud$Ri_path)]]
+  path_du <- pcglassoFast::pcglassoPath(S, alpha, lambdas = lambdas, R0 = R0, R0_inv = R0_inv)
 
-  max(sol_du$loss[length(sol_du$loss)], sol_ud$loss[length(sol_ud$loss)])
+  R0 <- path_du$R_path[[length(path_du$R_path)]]
+  R0_inv <- path_du$Ri_path[[length(path_du$Ri_path)]]
+  pcg_sol_2 <- pcglassoFast::pcglassoFast(S, alpha, lambda, R = R0, R_inv = R0_inv)
+
+  max(pcg_sol_1$loss[length(pcg_sol_1$loss)], pcg_sol_2$loss[length(pcg_sol_2$loss)])
+}
+
+path_up_down_up <- function(S, alpha, lambda) {
+  time_ud <- system.time(
+    sol_path_up_down_part <- path_up_down_part(S, alpha, lambda)
+  )[["elapsed"]]
+
+  path_ud_part <- sol_path_up_down_part$path_ud
+  pcg_sol_1 <- sol_path_up_down_part$pcg_sol
+  loss_ud <- pcg_sol_1$loss[length(pcg_sol_1$loss)]
+
+  if (length(path_ud_part$iters) == 50) {
+    return(list(
+      time_ud = time_ud,
+      res_ud = loss_ud,
+      time_udu = time_ud,
+      res_udu = loss_ud
+    ))
+  }
+
+  time_udu <- system.time(
+    loss_udu <- path_part_up_down_full_down_up(S, alpha, lambda, path_ud_part)
+  )[["elapsed"]]
+
+  list(
+    time_ud = time_ud,
+    res_ud = loss_ud,
+    time_udu = time_ud + time_udu,
+    res_udu = loss_udu
+  )
 }
 
 start_I <- function(S, alpha, lambda) {
