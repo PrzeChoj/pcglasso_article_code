@@ -1,9 +1,9 @@
-# R SCRIPT FOR VISUALIZING BENCHMARK RESULTS
-
 library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(scales)
+
+method_levels <- c("start_glasso", "start_cor", "start_I", "start_L2", "path_udu", "path_ud")
 
 results_file <- "./raw_experiments/starting_point/benchmark_results.rds"
 if (!file.exists(results_file)) {
@@ -50,14 +50,21 @@ results_ranked <- results_long %>%
   ungroup() %>%
   select(!found_target)
 
-max_ranked <- results_ranked$rank %>% max
-
 results_times_best <- results_ranked %>%
   group_by(p, alpha, lambda, experiment, Method) %>%
   mutate(times_best = sum(rank == 1)) %>%
   ungroup() %>%
   select(!c("replication", "rank")) %>%
-  distinct()
+  distinct() %>%
+  mutate(
+    experiment = factor(case_when(
+      experiment == 1 ~ "Hub",
+      experiment == 2 ~ "AR",
+      experiment == 3 ~ "Sanger",
+      experiment == 4 ~ "StockMarket",
+      TRUE ~ as.character(experiment)
+    ), levels = c("Hub", "AR", "Sanger", "StockMarket"))
+  )
 
 num_p <- length(unique(results_df$p))
 num_alpha <- length(unique(results_df$alpha))
@@ -69,26 +76,20 @@ stopifnot(
 )
 
 plot_alpha <- function(a, df = results_times_best) {
-  # consistent method order within an alpha (best overall on top)
-  method_levels <- df %>%
-    filter(alpha == a) %>%
-    group_by(Method) %>%
-    summarise(total = sum(times_best), .groups = "drop") %>%
-    arrange(desc(total)) %>%
-    pull(Method)
-
   ggplot(
-    df %>% filter(alpha == a) %>% mutate(Method = factor(Method, method_levels)),
+    df %>% filter(alpha == a) %>%
+      mutate(Method = factor(Method, levels = method_levels)),
     aes(x = Method, y = times_best, fill = Method)
   ) +
     geom_col(width = 0.75) +
     coord_flip() +
-    facet_grid(experiment ~ lambda, labeller = label_both) + # 4×3 = 12 panels
-    labs(title = paste("Times best per method — alpha =", a),
-         x = NULL, y = "times_best") +
+    facet_grid(
+      rows = vars(experiment), cols = vars(lambda),
+      labeller = labeller(experiment = label_value, lambda = label_both)
+    ) +
+    labs(title = paste("Times best per method — alpha =", a), x = NULL, y = "times_best") +
     theme_bw() +
-    theme(legend.position = "none",
-          strip.background = element_rect(fill = "grey95"))
+    theme(legend.position = "none", strip.background = element_rect(fill = "grey95"))
 }
 
 alphas <- sort(unique(results_times_best$alpha))
@@ -98,8 +99,8 @@ plot_alpha(alphas[1])
 plot_alpha(alphas[2])
 plot_alpha(alphas[3])
 
-invisible(lapply(
-  seq_along(alphas), \(i)
-  ggsave(sprintf("./raw_experiments/starting_point/plots/times_best_%s.pdf",
-                 as.character(alphas[i])),
-         plot_alpha(alphas[i]), width = 11, height = 8)))
+# invisible(lapply(
+#   seq_along(alphas), \(i)
+#   ggsave(sprintf("./raw_experiments/starting_point/plots/times_best_%s.pdf",
+#                  as.character(alphas[i])),
+#          plot_alpha(alphas[i]), width = 11, height = 8)))

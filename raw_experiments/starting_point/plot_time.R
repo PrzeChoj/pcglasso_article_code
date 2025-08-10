@@ -3,6 +3,8 @@ library(dplyr)
 library(tidyr)
 library(scales)
 
+method_levels <- c("start_glasso", "start_cor", "start_I", "start_L2", "path_udu", "path_ud")
+
 results_file <- "./raw_experiments/starting_point/benchmark_results.rds"
 if (!file.exists(results_file)) {
   stop(paste(
@@ -48,18 +50,9 @@ plot_data <- results_long %>%
   )
 
 
-# Order methods by median runtime for cleaner legend/lines
-method_levels <- plot_data %>%
-  group_by(Method) %>%
-  summarise(med = median(mean_time, na.rm = TRUE), .groups = "drop") %>%
-  arrange(med) %>%
-  pull(Method)
-
-plot_data <- plot_data %>%
-  mutate(Method = factor(Method, levels = method_levels))
-
 plot_runtime <- function(a, data = plot_data) {
-  df <- dplyr::filter(data, alpha == a)
+  df <- dplyr::filter(data, alpha == a) %>%
+    mutate(Method = factor(Method, levels = method_levels))
   if (nrow(df) == 0) stop("No data for alpha = ", a)
 
   ggplot(df, aes(p, mean_time, color = Method, group = Method)) +
@@ -103,8 +96,8 @@ plot_runtime(alphas[1])
 plot_runtime(alphas[2])
 plot_runtime(alphas[3])
 
-invisible(lapply(
-  seq_along(alphas), \(i)
-  ggsave(sprintf("./raw_experiments/starting_point/plots/runtime_%s.pdf",
-                 as.character(alphas[i])),
-         plot_runtime(alphas[i]), width = 11, height = 8)))
+# invisible(lapply(
+#   seq_along(alphas), \(i)
+#   ggsave(sprintf("./raw_experiments/starting_point/plots/runtime_%s.pdf",
+#                  as.character(alphas[i])),
+#          plot_runtime(alphas[i]), width = 11, height = 8)))
