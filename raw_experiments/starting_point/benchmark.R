@@ -17,7 +17,7 @@ p_values <- c(10, 30, 50, 100)
 alpha_values <- c(-0.1, 0, 0.2)
 lambda_values <- c(0.01, 0.05, 0.1)
 experiment_values <- 1:4
-replications <- 30
+replications <- 100
 
 param_grid <- expand.grid(
   p = p_values,
@@ -56,12 +56,12 @@ results_df <- foreach(
 
   S <- get_S(p = p_val, which_experiment = exp_val)
 
-  ti   <- timed(start_I(S, alpha_val, lambda_val));         time_start_I      <- ti$time;   res_start_I      <- ti$res
-  tc   <- timed(start_cor(S, alpha_val, lambda_val));       time_start_cor    <- tc$time;   res_start_cor    <- tc$res
-  tg   <- timed(start_glasso(S, alpha_val, lambda_val));    time_start_glasso <- tg$time;   res_start_glasso <- tg$res
-  tL2  <- timed(start_L2(S, alpha_val, lambda_val));        time_start_L2     <- tL2$time;  res_start_L2     <- tL2$res
+  ti  <- timed(start_I(S, alpha_val, lambda_val));      time_start_I      <- ti$time;  res_start_I      <- ti$res
+  tc  <- timed(start_cor(S, alpha_val, lambda_val));    time_start_cor    <- tc$time;  res_start_cor    <- tc$res
+  tg  <- timed(start_glasso(S, alpha_val, lambda_val)); time_start_glasso <- tg$time;  res_start_glasso <- tg$res
+  tL2 <- timed(start_L2(S, alpha_val, lambda_val));     time_start_L2     <- tL2$time; res_start_L2     <- tL2$res
 
-  res_udu <- path_up_down_up(S, alpha, lambda)
+  res_udu <- path_up_down_up(S, alpha_val, lambda_val)
   time_path_ud <- res_udu$time_ud; res_path_ud <- res_udu$res_ud
   time_path_udu <- res_udu$time_udu; res_path_udu <- res_udu$res_udu
 

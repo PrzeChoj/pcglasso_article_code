@@ -1,7 +1,7 @@
 path_up_down_part <- function(S, alpha, lambda) {
   nlambda <- 50
 
-  lam_max <- max(abs(cov2cor(S) - diag(nrow(S))))
+  lam_max <- max(abs(cov2cor(S) - diag(nrow(S)))) + 0.001
   lam_min <- 0.0001 * lam_max
   lambdas <- exp(seq(log(lam_max), log(lam_min), length.out = nlambda))
 
@@ -28,7 +28,7 @@ path_up_down_part <- function(S, alpha, lambda) {
 
 path_part_up_down_full_down_up <- function(S, alpha, lambda, path_ud_part) {
   nlambda <- 50
-  lam_max <- max(abs(cov2cor(S) - diag(nrow(S))))
+  lam_max <- max(abs(cov2cor(S) - diag(nrow(S)))) + 0.001
   lam_min <- 0.0001 * lam_max
   lambdas <- exp(seq(log(lam_max), log(lam_min), length.out = nlambda))
   lambdas <- lambdas[lambdas <= lambda]
@@ -46,7 +46,7 @@ path_part_up_down_full_down_up <- function(S, alpha, lambda, path_ud_part) {
   }
 
   nlambda <- 50
-  lam_max <- max(abs(cov2cor(S) - diag(nrow(S))))
+  lam_max <- max(abs(cov2cor(S) - diag(nrow(S)))) + 0.001
   lam_min <- 0.0001 * lam_max
   lambdas <- rev(exp(seq(log(lam_max), log(lam_min), length.out = nlambda))) # down up
   lambdas <- lambdas[lambdas <= lambda]
@@ -58,9 +58,9 @@ path_part_up_down_full_down_up <- function(S, alpha, lambda, path_ud_part) {
 
   R0 <- path_du$R_path[[length(path_du$R_path)]]
   R0_inv <- path_du$Ri_path[[length(path_du$Ri_path)]]
-  pcg_sol_2 <- pcglassoFast::pcglassoFast(S, alpha, lambda, R = R0, R_inv = R0_inv)
+  pcg_sol_2 <- pcglassoFast::pcglassoFast(S, lambda, alpha, R = R0, R_inv = R0_inv)
 
-  max(pcg_sol_1$loss[length(pcg_sol_1$loss)], pcg_sol_2$loss[length(pcg_sol_2$loss)])
+  pcg_sol_2$loss[length(pcg_sol_2$loss)]
 }
 
 path_up_down_up <- function(S, alpha, lambda) {
@@ -89,7 +89,7 @@ path_up_down_up <- function(S, alpha, lambda) {
     time_ud = time_ud,
     res_ud = loss_ud,
     time_udu = time_ud + time_udu,
-    res_udu = loss_udu
+    res_udu = max(loss_ud, loss_udu)
   )
 }
 
@@ -118,7 +118,7 @@ start_glasso <- function(S, alpha, lambda) {
 }
 
 start_L2 <- function(S, alpha, lambda) {
-  P_est <- rags2ridges::ridgeP(S, lambda = 0.1)
+  P_est <- rags2ridges::ridgeP(S, lambda = lambda * mean(diag(S))) # lambda is penalty for cor matrix
 
   res <- pcglassoFast::pcglassoFast(S, lambda, alpha, R = cov2cor(P_est))
 
