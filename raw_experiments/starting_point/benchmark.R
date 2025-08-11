@@ -17,7 +17,7 @@ p_values <- c(10, 30, 50, 100)
 alpha_values <- c(-0.1, 0, 0.2)
 lambda_values <- c(0.01, 0.05, 0.1)
 experiment_values <- 1:4
-replications <- 100
+replications <- 30
 
 param_grid <- expand.grid(
   p = p_values,

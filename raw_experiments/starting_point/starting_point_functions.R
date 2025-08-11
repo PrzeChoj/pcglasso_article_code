@@ -35,7 +35,7 @@ path_part_up_down_full_down_up <- function(S, alpha, lambda, path_ud_part) {
 
   # I know that length(lambdas) > 1
 
-  path_ud <- if (length(lambdas) == 50) {
+  path_ud <- if (length(lambdas) == 50) { # equivalent, is.na(path_ud_part)
     R0 <- diag(nrow(S))
     pcglassoFast::pcglassoPath(S, alpha, lambdas = lambdas, R0 = R0, R0_inv = R0)
   } else {
@@ -72,7 +72,8 @@ path_up_down_up <- function(S, alpha, lambda) {
   pcg_sol_1 <- sol_path_up_down_part$pcg_sol
   loss_ud <- pcg_sol_1$loss[length(pcg_sol_1$loss)]
 
-  if (length(path_ud_part$iters) == 50) {
+  if ((!is.na(path_ud_part)) && (length(path_ud_part$iters) == 50)) {
+    # lambda is smaller than all lambdas in path
     return(list(
       time_ud = time_ud,
       res_ud = loss_ud,
