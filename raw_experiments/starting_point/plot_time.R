@@ -56,9 +56,10 @@ plot_runtime <- function(a, data = plot_data) {
   if (nrow(df) == 0) stop("No data for alpha = ", a)
 
   ggplot(df, aes(p, mean_time, color = Method, group = Method)) +
+    geom_ribbon(aes(x = p, ymin = lower_ci, ymax = upper_ci, fill = Method),
+                alpha = 0.18, colour = NA) +
     geom_line() +
     geom_point(size = 1.6) +
-    #geom_errorbar(aes(ymin = lower_ci, ymax = upper_ci), width = 0.08, alpha = 0.6) +
     scale_y_log10(
       breaks = scales::log_breaks(base = 10),
       labels = function(x) {
@@ -98,6 +99,6 @@ plot_runtime(alphas[3])
 
 # invisible(lapply(
 #   seq_along(alphas), \(i)
-#   ggsave(sprintf("./raw_experiments/starting_point/plots/runtime_%s.pdf",
+#   ggsave(sprintf("./raw_experiments/starting_point/plots/runtime_%s.png",
 #                  as.character(alphas[i])),
-#          plot_runtime(alphas[i]), width = 11, height = 8)))
+#          plot_runtime(alphas[i]), width = 5, height = 6)))
