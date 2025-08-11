@@ -50,8 +50,8 @@ plot_data <- results_long %>%
   )
 
 
-plot_runtime <- function(a, data = plot_data) {
-  df <- dplyr::filter(data, alpha == a) %>%
+plot_runtime <- function(a, plot_label = TRUE) {
+  df <- dplyr::filter(plot_data, alpha == a) %>%
     mutate(Method = factor(Method, levels = method_levels))
   if (nrow(df) == 0) stop("No data for alpha = ", a)
 
@@ -69,10 +69,9 @@ plot_runtime <- function(a, data = plot_data) {
     ) +
     scale_x_continuous(breaks = sort(unique(df$p))) +
     labs(
-      x = "p (number of variables)",
-      y = "Mean runtime [s] (log10 scale)",
-      title = paste0("Benchmark runtimes ±95% CI — alpha = ", a),
-      subtitle = "Faceted by experiment (rows) and lambda (columns)"
+      x = "p",
+      y = "Mean runtime [s]",
+      title = paste0("Benchmark runtimes for α = ", a)
     ) +
     facet_grid(
       rows = vars(experiment_label),
@@ -82,7 +81,7 @@ plot_runtime <- function(a, data = plot_data) {
     ) +
     theme_bw(base_size = 12) +
     theme(
-      legend.position = "bottom",
+      legend.position = if(plot_label){"bottom"} else {"none"},
       legend.title = element_blank(),
       panel.grid.minor = element_blank(),
       strip.background = element_rect(fill = "grey95", color = NA),
@@ -101,4 +100,4 @@ plot_runtime(alphas[3])
 #   seq_along(alphas), \(i)
 #   ggsave(sprintf("./raw_experiments/starting_point/plots/runtime_%s.png",
 #                  as.character(alphas[i])),
-#          plot_runtime(alphas[i]), width = 5, height = 6)))
+#          plot_runtime(alphas[i], i == 3), width = 5, height = if(i == 3){6}else{5})))

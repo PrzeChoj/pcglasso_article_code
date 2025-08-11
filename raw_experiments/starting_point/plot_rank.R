@@ -75,7 +75,7 @@ stopifnot(
   nrow(results_times_best) == num_p * num_alpha * num_lambda * num_experiments * num_methods
 )
 
-plot_alpha <- function(a) {
+plot_alpha <- function(a, plot_label = TRUE) {
   df <- results_times_best |>
     filter(alpha == a) |>
     mutate(times_best = 100 * times_best / max(times_best)) |>
@@ -85,9 +85,10 @@ plot_alpha <- function(a) {
   ggplot(df, aes(p, times_best, fill = method)) +
     geom_col(position = position_dodge2(preserve = "single", padding = 0.2),
              width = 0.7) +
-    facet_grid(experiment ~ lambda) +
-    labs(title = paste("Times best per method — alpha =", a), x = "p", y = "times best (%)", fill = NULL) +
-    theme_bw(11) + theme(legend.position = "bottom")
+    facet_grid(experiment ~ lambda, labeller = labeller(lambda = function(x) paste("λ =", x))) +
+    labs(title = paste("Times best per method for α =", a), x = "p", y = "times best (%)", fill = NULL) +
+    theme_bw(11) +
+    theme(legend.position = if(plot_label){"bottom"} else {"none"})
 }
 
 alphas <- sort(unique(results_times_best$alpha))
@@ -101,4 +102,4 @@ plot_alpha(alphas[3])
 #   seq_along(alphas), \(i)
 #   ggsave(sprintf("./raw_experiments/starting_point/plots/times_best_%s.png",
 #                  as.character(alphas[i])),
-#          plot_alpha(alphas[i]), width = 4, height = 5)))
+#          plot_alpha(alphas[i], plot_label = (i != 1)), width = 4, height = if(i == 1){4.1} else {5})))
