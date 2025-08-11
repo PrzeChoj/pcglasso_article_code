@@ -78,6 +78,7 @@ stopifnot(
 plot_alpha <- function(a) {
   df <- results_times_best |>
     filter(alpha == a) |>
+    mutate(times_best = 100 * times_best / max(times_best)) |>
     mutate(method = factor(Method, levels = method_levels),
            p = factor(p))
 
@@ -85,7 +86,7 @@ plot_alpha <- function(a) {
     geom_col(position = position_dodge2(preserve = "single", padding = 0.2),
              width = 0.7) +
     facet_grid(experiment ~ lambda) +
-    labs(title = paste("Times best per method — alpha =", a), x = "p", y = "times best", fill = NULL) +
+    labs(title = paste("Times best per method — alpha =", a), x = "p", y = "times best (%)", fill = NULL) +
     theme_bw(11) + theme(legend.position = "bottom")
 }
 
@@ -96,8 +97,8 @@ plot_alpha(alphas[1])
 plot_alpha(alphas[2])
 plot_alpha(alphas[3])
 
-invisible(lapply(
-  seq_along(alphas), \(i)
-  ggsave(sprintf("./raw_experiments/starting_point/plots/times_best_%s.png",
-                 as.character(alphas[i])),
-         plot_alpha(alphas[i]), width = 4, height = 5)))
+# invisible(lapply(
+#   seq_along(alphas), \(i)
+#   ggsave(sprintf("./raw_experiments/starting_point/plots/times_best_%s.png",
+#                  as.character(alphas[i])),
+#          plot_alpha(alphas[i]), width = 4, height = 5)))
