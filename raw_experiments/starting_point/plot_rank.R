@@ -26,7 +26,7 @@ results_long <- results_df %>%
 
 results_long$found_target <- round(results_long$found_target, 1)
 
-approx_rank <- function(x, tol = 1e-1) {
+approx_rank <- function(x, tol = 1e-3) {
   ord <- order(-x)
   ranks <- integer(length(x))
 
@@ -75,21 +75,18 @@ stopifnot(
   nrow(results_times_best) == num_p * num_alpha * num_lambda * num_experiments * num_methods
 )
 
-plot_alpha <- function(a, df = results_times_best) {
-  ggplot(
-    df %>% filter(alpha == a) %>%
-      mutate(Method = factor(Method, levels = method_levels)),
-    aes(x = Method, y = times_best, fill = Method)
-  ) +
-    geom_col(width = 0.75) +
-    coord_flip() +
-    facet_grid(
-      rows = vars(experiment), cols = vars(lambda),
-      labeller = labeller(experiment = label_value, lambda = label_both)
-    ) +
-    labs(title = paste("Times best per method — alpha =", a), x = NULL, y = "times_best") +
-    theme_bw() +
-    theme(legend.position = "none", strip.background = element_rect(fill = "grey95"))
+plot_alpha <- function(a) {
+  df <- results_times_best |>
+    filter(alpha == a) |>
+    mutate(method = factor(Method, levels = method_levels),
+           p = factor(p))
+
+  ggplot(df, aes(p, times_best, fill = method)) +
+    geom_col(position = position_dodge2(preserve = "single", padding = 0.2),
+             width = 0.7) +
+    facet_grid(experiment ~ lambda) +
+    labs(title = paste("Times best per method — alpha =", a), x = "p", y = "times best", fill = NULL) +
+    theme_bw(11) + theme(legend.position = "bottom")
 }
 
 alphas <- sort(unique(results_times_best$alpha))
@@ -99,8 +96,8 @@ plot_alpha(alphas[1])
 plot_alpha(alphas[2])
 plot_alpha(alphas[3])
 
-# invisible(lapply(
-#   seq_along(alphas), \(i)
-#   ggsave(sprintf("./raw_experiments/starting_point/plots/times_best_%s.pdf",
-#                  as.character(alphas[i])),
-#          plot_alpha(alphas[i]), width = 11, height = 8)))
+invisible(lapply(
+  seq_along(alphas), \(i)
+  ggsave(sprintf("./raw_experiments/starting_point/plots/times_best_%s.png",
+                 as.character(alphas[i])),
+         plot_alpha(alphas[i]), width = 4, height = 5)))
