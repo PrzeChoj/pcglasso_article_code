@@ -72,7 +72,7 @@ path_up_down_up <- function(S, alpha, lambda) {
   pcg_sol_1 <- sol_path_up_down_part$pcg_sol
   loss_ud <- pcg_sol_1$loss[length(pcg_sol_1$loss)]
 
-  if ((!is.na(path_ud_part)) && (length(path_ud_part$iters) == 50)) {
+  if (isFALSE(is.na(path_ud_part)) && (length(path_ud_part$iters) == 50)) {
     # lambda is smaller than all lambdas in path
     return(list(
       time_ud = time_ud,
