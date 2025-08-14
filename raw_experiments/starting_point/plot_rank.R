@@ -116,13 +116,14 @@ plot_alpha <- function(alpha_val, plot_label = TRUE) {
       title = paste0("Times best per method for \u03B1 = ", alpha_val),
       x = "times best (%)", y = NULL
     ) +
-    theme_bw(base_size = 12) +
+    theme_bw(base_size = 14) +
     theme(
       legend.position = if(plot_label){"bottom"}else{"none"},
       legend.title = element_blank(),
       strip.placement = "outside",
       plot.title = element_text(hjust = .5, face = "bold"),
-      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 8)
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 8),
+      panel.spacing.y = unit(0.1, "lines")
     )
 }
 
@@ -133,8 +134,8 @@ plot_alpha(alphas[1])
 plot_alpha(alphas[2])
 plot_alpha(alphas[3])
 
-# invisible(lapply(
-#   seq_along(alphas), \(i)
-#   ggsave(sprintf("./raw_experiments/starting_point/plots/times_best_%s.png",
-#                  as.character(alphas[i])),
-#          plot_alpha(alphas[i], plot_label = (i != 1)), width = 9, height = if(i == 1){9} else {10})))
+invisible(lapply(
+  seq_along(alphas), \(i)
+  ggsave(sprintf("./raw_experiments/starting_point/plots/times_best_%s.png",
+                 as.character(alphas[i])),
+         plot_alpha(alphas[i], plot_label = (i != 1)), width = 8, height = if(i == 1){6} else {7})))
