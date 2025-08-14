@@ -123,6 +123,7 @@ plot_alpha <- function(alpha_val, plot_label = TRUE) {
       strip.placement = "outside",
       plot.title = element_text(hjust = .5, face = "bold"),
       axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 8),
+      axis.text.y = element_text(hjust = 0),
       panel.spacing.y = unit(0.1, "lines")
     )
 }
@@ -134,8 +135,8 @@ plot_alpha(alphas[1])
 plot_alpha(alphas[2])
 plot_alpha(alphas[3])
 
-invisible(lapply(
-  seq_along(alphas), \(i)
-  ggsave(sprintf("./raw_experiments/starting_point/plots/times_best_%s.png",
-                 as.character(alphas[i])),
-         plot_alpha(alphas[i], plot_label = (i != 1)), width = 8, height = if(i == 1){6} else {7})))
+# invisible(lapply(
+#   seq_along(alphas), \(i)
+#   ggsave(sprintf("./raw_experiments/starting_point/plots/times_best_%s.png",
+#                  as.character(alphas[i])),
+#          plot_alpha(alphas[i], plot_label = (i != 1)), width = 8, height = if(i == 1){6} else {7})))
