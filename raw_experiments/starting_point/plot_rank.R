@@ -14,6 +14,16 @@ if (!file.exists(results_file)) {
 }
 results_df <- readRDS(results_file)
 
+results_df <- results_df %>%
+  filter(p != 10)
+
+number_of_experiments <- results_df %>%
+  group_by(p, alpha, lambda, experiment) %>%
+  summarise(number_of_experiments = n(), .groups = "drop") %>%
+  pull(number_of_experiments) %>%
+  unique
+
+stopifnot(length(number_of_experiments) == 1)
 
 results_long <- results_df %>%
   pivot_longer(
@@ -75,20 +85,45 @@ stopifnot(
   nrow(results_times_best) == num_p * num_alpha * num_lambda * num_experiments * num_methods
 )
 
-plot_alpha <- function(a, plot_label = TRUE) {
+plot_alpha <- function(alpha_val, plot_label = TRUE) {
   df <- results_times_best |>
-    filter(alpha == a) |>
-    mutate(times_best = 100 * times_best / max(times_best)) |>
-    mutate(method = factor(Method, levels = method_levels),
-           p = factor(p))
+    dplyr::filter(alpha == alpha_val)
 
-  ggplot(df, aes(p, times_best, fill = method)) +
-    geom_col(position = position_dodge2(preserve = "single", padding = 0.2),
-             width = 0.7) +
-    facet_grid(experiment ~ lambda, labeller = labeller(lambda = function(x) paste("λ =", x))) +
-    labs(title = paste("Times best per method for α =", a), x = "p", y = "times best (%)", fill = NULL) +
-    theme_bw(11) +
-    theme(legend.position = if(plot_label){"bottom"} else {"none"})
+  if (!"lambda_lab" %in% names(df)) df$lambda_lab <- paste0("\u03BB = ", df$lambda)
+  if (!"experiment_lab" %in% names(df)) df$experiment_lab <- df$experiment
+
+  df <- df |>
+    dplyr::mutate(
+      Method = factor(Method, levels = method_levels),
+      p_fac  = factor(paste0("p = ", p), levels = paste0("p = ", sort(unique(p)))),
+      times_best = 100 * times_best / number_of_experiments
+    )
+
+  ggplot(df, aes(x = times_best, y = Method, fill = Method)) +
+    geom_col(width = .8) +
+    facet_grid(experiment_lab ~ lambda_lab + p_fac, switch = "y", scales = "fixed") +
+    scale_x_continuous(
+      limits = c(0, 100),
+      breaks  = seq(0, 100, 25),
+      labels  = scales::label_number(accuracy = 1, suffix = "%"),
+      expand  = expansion(mult = c(0, .02))
+    ) +
+    scale_fill_manual(
+      values = c("#F08A84","#C7A74A","#2AA054","#3BC7CF","#6B8FE7","#E86AD8"),
+      breaks = method_levels
+    ) +
+    labs(
+      title = paste0("Times best per method for \u03B1 = ", alpha_val),
+      x = "times best (%)", y = NULL
+    ) +
+    theme_bw(base_size = 12) +
+    theme(
+      legend.position = if(plot_label){"bottom"}else{"none"},
+      legend.title = element_blank(),
+      strip.placement = "outside",
+      plot.title = element_text(hjust = .5, face = "bold"),
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 8)
+    )
 }
 
 alphas <- sort(unique(results_times_best$alpha))
@@ -102,4 +137,4 @@ plot_alpha(alphas[3])
 #   seq_along(alphas), \(i)
 #   ggsave(sprintf("./raw_experiments/starting_point/plots/times_best_%s.png",
 #                  as.character(alphas[i])),
-#          plot_alpha(alphas[i], plot_label = (i != 1)), width = 4, height = if(i == 1){4.1} else {5})))
+#          plot_alpha(alphas[i], plot_label = (i != 1)), width = 9, height = if(i == 1){9} else {10})))
