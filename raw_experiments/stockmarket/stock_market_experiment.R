@@ -175,6 +175,10 @@ fig <- ggplot(plot_data, aes(x = p, y = mean_time, color = Method)) +
     breaks = c(0.001, 0.01, 0.1, 1, 5),
     labels = c("0.001", "0.01", "0.1", "1", "5")
   ) +
+  scale_x_continuous(
+    breaks = p_vec,
+    labels = as.character(p_vec)
+  ) +
   theme_minimal()
 
 print(fig)
