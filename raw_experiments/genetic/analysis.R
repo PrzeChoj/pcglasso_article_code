@@ -28,7 +28,7 @@ space.res <-    estimator_space(Sigma.Sanger,n, lambdas, X,gamma = gamma)
 alpha_grid <- sort(unique(c(
   seq(-0.1, -0.01, length.out = 6),
   0)))
-pcglasso.res <- estimator_pcglasso(Sigma.Sanger,n, lambdas,alpha_grid,gamma,max.edge.fraction=0.7)
+pcglasso.res <- estimator_pcglasso(Sigma.Sanger,n, lambdas,alpha_grid,gamma,max_edge_fraction=0.7)
 
 # Flatten all BIC values with corresponding alpha and lambda
 bic_df <- do.call(rbind, lapply(names(pcglasso.res$path.loss), function(a) {

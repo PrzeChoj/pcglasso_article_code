@@ -64,17 +64,32 @@ estimator_corglasso <- function(S_full, n, lambdas, gamma =0) {
   )
 }
 
-estimator_pcglasso <- function(S_full, n, lambdas, alpha_grid = 0, gamma = 0, max_edge_fraction = 0.3) {
+estimator_pcglasso <- function(S_full,
+                               n,
+                               lambdas,
+                               alpha_grid = 0,
+                               gamma = 0,
+                               max_edge_fraction = 0.3,
+                               R_start = NULL,
+                               max_iter = 100,
+                               max_iter_R_outer = 100) {
   t_full <- system.time({
     pc_path_list  <- list()
     pc_loss_list  <- list()
     pc_path_list_all <- list()
+    if(is.null(R_start))
+    {
+      R_start <- diag(nrow(S_full))
+    }
     for (a in alpha_grid) {
       path <- pcglassoPath(
         S_full,
         alpha = a,
         max_edge_fraction = max_edge_fraction,
-        lambdas = lambdas
+        lambdas = lambdas,
+        R0 = R_start,
+        max_iter_R_outer = max_iter_R_outer,
+        max_iter = max_iter
       )
 
       p <- nrow(path$W[[1]])

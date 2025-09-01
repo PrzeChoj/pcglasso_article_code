@@ -39,7 +39,7 @@ alpha_grid <- sort(unique(c(
   0,
   seq(0.01, 0.1, length.out = 3)
 )))
-pcglasso.res <- estimator_pcglasso(covX,n, lambdas,alpha_grid,gamma,max.edge.fraction=0.7)
+pcglasso.res <- estimator_pcglasso(covX,n, lambdas,alpha_grid,gamma,max_edge_fraction=0.7)
 
 
 bic_df <- do.call(rbind, lapply(names(pcglasso.res$path.loss), function(a) {
