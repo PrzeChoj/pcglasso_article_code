@@ -27,7 +27,7 @@ estimator_space <- function(S_full, n, lambdas, data, gamma = 0, min_scale= log(
       res_space[,,i] <- (Theta + t(Theta)) / 2
     }
 
-    loss_space <- evaluate_loss_path(res_space, Sigma = S_full, n = n, gamma = gamma)
+    loss_space <- evaluate_objective_path(res_space, Sigma = S_full, n = n, gamma = gamma)
   })
 
   list(
@@ -53,7 +53,7 @@ estimator_corglasso <- function(S_full, n, lambdas, gamma =0) {
     cg_prec_path <- cov2cor_inv(cg_full_path$wi, 1 / vars_full)
 
     # Evaluate loss
-    loss_path <- evaluate_loss_path(cg_prec_path, Sigma = S_full, n = n, gamma = gamma)
+    loss_path <- evaluate_objective_path(cg_prec_path, Sigma = S_full, n = n, gamma = gamma)
   })
 
   list(
@@ -72,7 +72,8 @@ estimator_pcglasso <- function(S_full,
                                max_edge_fraction = 0.3,
                                R_start = NULL,
                                max_iter = 100,
-                               max_iter_R_outer = 100) {
+                               max_iter_R_outer = 100,
+                               max_iter_R_inner = 10) {
   t_full <- system.time({
     pc_path_list  <- list()
     pc_loss_list  <- list()
@@ -88,8 +89,10 @@ estimator_pcglasso <- function(S_full,
         max_edge_fraction = max_edge_fraction,
         lambdas = lambdas,
         R0 = R_start,
+        max_iter_R = max_iter_R_inner,
         max_iter_R_outer = max_iter_R_outer,
-        max_iter = max_iter
+        max_iter = max_iter,
+        verbose=T
       )
 
       p <- nrow(path$W[[1]])
@@ -104,7 +107,7 @@ estimator_pcglasso <- function(S_full,
       }
       pc_path_list_all[[as.character(a)]]  <- path
       pc_path_list[[as.character(a)]] <- W
-      pc_loss_list[[as.character(a)]] <- evaluate_loss_path(path, Sigma = S_full, n = n, gamma = gamma)
+      pc_loss_list[[as.character(a)]] <- evaluate_objective_path(path, Sigma = S_full, n = n, gamma = gamma)
     }
   })
   if(length(pc_path_list) ==1)
@@ -132,7 +135,7 @@ estimator_glasso <- function(S_full, n, lambdas, gamma = 0) {
       capture.output({
     gl_full_path <- glasso::glassopath(S_full, rholist = lambdas, penalize.diagonal = FALSE)
     }))
-    loss_gl_full <- evaluate_loss_path(gl_full_path$wi, Sigma = S_full, n = n, gamma = gamma)
+    loss_gl_full <- evaluate_objective_path(gl_full_path$wi, Sigma = S_full, n = n, gamma = gamma)
   })
   list(
     path       = gl_full_path$wi,
