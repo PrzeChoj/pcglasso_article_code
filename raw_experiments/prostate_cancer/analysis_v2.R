@@ -1,8 +1,8 @@
-
-
+#source("raw_experiments/estimation_function.R")
 source("../estimation_function.R")
 
 gamma <- 0.5
+#df_reduced <- read.csv("./raw_experiments/prostate_cancer/312_df_reduced.csv")
 df_reduced <- read.csv("312_df_reduced.csv")
 n.lambda <- 10
 
@@ -26,7 +26,7 @@ lam_min <- 0.067 * lam_max
 lambdas.glasso <- exp(seq(log(lam_min),log(lam_max), length.out = n.lambda))
 glasso.res   <- estimator_glasso(Sigma.est,n, lambdas.glasso,gamma = gamma)
 plot(glasso.res$path.loss$nEdges,glasso.res$path.loss$BIC_gamma)
-alpha.glasso <- apply(cov2cor(glasso.res$path[,,20]),2, function(x){sum((abs(x)^(3/4)))-1})
+alpha.glasso <- apply(cov2cor(glasso.res$path[,,10]),2, function(x){sum((abs(x)^(3/4)))-1}) # To Jonas form Adam: It was `glasso.res$path[,,20]`, what should it be here?
 glasso.best <- which.min(glasso.res$path.loss$BIC_gamma)
 alpha.glasso <- apply(cov2cor(glasso.res$path[,,glasso.best]),2, function(x){sum((abs(x)^(3/4)))-1})
 cat(order(alpha.glasso,decreasing = TRUE)[1:2], "\n")
@@ -45,4 +45,11 @@ cat(order(alpha.cglasso,decreasing = TRUE)[1:2], "\n")
 lam_max <- 0.2*max(abs(Sigma.est - diag(diag(Sigma.est))))
 lam_min <- 0.4 * lam_max
 lambdas.pcglasso <- 2*exp(seq(log(lam_max),log(lam_min), length.out = n.lambda))
-pcglasso.est <- estimator_pcglasso(Sigma.est, n, lambdas.pcglasso,gamma=gamma)
+pcglasso.est <- estimator_pcglasso(Sigma.est, n, lambdas.pcglasso,gamma=gamma, verbose = 1) # 55 minutes
+plot(pcglasso.est$path.loss$nEdges,pcglasso.est$path.loss$BIC_gamma)
+rbind(
+  pcglasso.est$path.loss$nEdges,
+  pcglasso.est$path.loss$loglik
+)
+# [1,]       0.0    939.00   1001.00   1154.00   1248.00   1449.00   1611.00   1748.00   1939.00   2113.00
+# [2,] -162611.9 -91257.29 -88302.49 -83933.69 -81556.08 -77028.26 -75028.52 -73155.04 -71503.01 -69978.31

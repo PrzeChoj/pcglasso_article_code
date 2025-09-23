@@ -71,8 +71,6 @@ estimator_pcglasso <- function(S_full,
                                gamma = 0,
                                max_edge_fraction = 0.3,
                                R_start = NULL,
-                               max_iter = 100,
-                               max_iter_R_outer = 100,
                                verbose = 0) {
   t_full <- system.time({
     pc_path_list  <- list()
@@ -89,9 +87,6 @@ estimator_pcglasso <- function(S_full,
         max_edge_fraction = max_edge_fraction,
         lambdas = lambdas,
         R0 = R_start,
-        max_iter_R = max_iter_R_inner,
-        max_iter_R_outer = max_iter_R_outer,
-        max_iter = max_iter,
         verbose = verbose
       )
 
