@@ -89,7 +89,7 @@ results_list <- foreach(
   t_carter <- (proc.time() - start_carter)[["elapsed"]]
   res_carter <- list(
     Sinv = res_carter,
-    loss = pcglassoFast:::function_to_optimize(cov2cor(res_carter), sqrt(diag(res_carter)), S, lambda, 0)
+    loss = pcglassoFast:::function_to_optimize(cov2cor(res_carter), sqrt(diag(res_carter)), cov2cor(S), lambda, 0)
   )
 
   # Time pcglassoFast::pcglassoFast()
@@ -171,7 +171,7 @@ fig <- ggplot(plot_data, aes(x = p, y = mean_time, color = Method)) +
     color = "Method"
   ) +
   scale_y_log10(
-    limits = c(0.001, 5),
+    limits = c(0.0008, 5),
     breaks = c(0.001, 0.01, 0.1, 1, 5),
     labels = c("0.001", "0.01", "0.1", "1", "5")
   ) +
