@@ -12,7 +12,7 @@ set.seed(2)
 graphics.off()
 generate.pcglasso=T
 split.train        <- 0.7      # not used directly below, but could be referenced in your functions
-ns                 <- c(100)
+ns                 <- c(200)
 sim                <- 4
 nlambda            <- 50
 mc_cores           <- 4

@@ -73,7 +73,7 @@ results_list <- foreach(
   }
 
   # Compute the empirical covariance matrix
-  S <- cov(X) + diag(0.0001, p)
+  S <- cov(X) #+ diag(0.0001, p)
 
   # --- Time the Two Methods ---
   # Time PCGLASSO:::pcglasso.carter()
@@ -101,6 +101,7 @@ results_list <- foreach(
     tolerance = 1e-4,
     max_iter = 1000
   )
+  res_fortran$loss <- pcglassoFast:::function_to_optimize(res_fortran$R, res_fortran$D, cov2cor(S), lambda, 0)
   t_fortran <- (proc.time() - start_fortran)[["elapsed"]]
 
   # Compute the number of nonzero off-diagonal elements (edges)

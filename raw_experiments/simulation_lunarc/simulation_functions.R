@@ -6,7 +6,8 @@ source('estimation_methods.R')
 run_single <- function(Q, n, split_train = 0.7,
                        alpha_grid = sort(unique(c(seq(-0.1, 0.1, length.out = 10), 0))),
                        nlambda = 100, lambda.min.ratio = 0.01,
-                       estimators = NULL) {
+                       estimators = NULL,
+                       verbose=F) {
   p <- ncol(Q)
   L <- Cholesky(Matrix(forceSymmetric(Q), sparse = TRUE), LDL = FALSE, perm = TRUE)
   z <- matrix(rnorm(n * p), nrow = p, ncol = n)
@@ -39,6 +40,7 @@ run_single <- function(Q, n, split_train = 0.7,
 
   res_list <- list()
   for (meth in names(estimators)) {
+    if(verbose) cat("Running method:", meth, "\n")
     est <- estimators[[meth]](S_full, S_train, S_test, n, n_train, n_test, lambdas, alpha_grid=alpha_grid, data=data, train=train, test=test)
     for (sel in names(est)) {
       sel_name <- paste0(meth, "_", gsub(".*_", "", sel)) # eg "GL_bic"

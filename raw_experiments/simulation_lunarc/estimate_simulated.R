@@ -39,10 +39,10 @@ set.seed(2)
 graphics.off()
 
 split.train        <- 0.7      # not used directly below, but could be referenced in your functions
-ns                 <- c(200,300,500,1000,5000)
+ns                 <- 200#c(200,300,500,1000,5000)
 sim                <- 200
 nlambda            <- 50
-mc_cores           <- parallel::detectCores()
+mc_cores           <- parallel::detectCores()-4
 #mc_cores <- 1L
 alpha_grid         <- 0
 lambda.min.ratio   <- 0.01
