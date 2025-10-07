@@ -1,13 +1,18 @@
 #source("raw_experiments/estimation_function.R")
+library(PCGLASSO)
+library(ggplot2)
+source("../hub_methods/013_Method_IPCHD.R")
+source("../hub_methods/012_Method_VariableScreening.R")
+source("../hub_methods/011_Method_MatrixThresholding.R")
 source("../estimation_function.R")
 
 gamma <- 0.5
 #df_reduced <- read.csv("./raw_experiments/prostate_cancer/312_df_reduced.csv")
 df_reduced <- read.csv("312_df_reduced.csv")
 n.lambda <- 20
-
 df_reduced <- df_reduced[, -1]
 df_genes <- df_reduced[, 7 + 1:200]
+gene.names <- colnames(df_genes)
 Sigma.est <- cov(df_genes)
 Corr.est <- cov2cor(Sigma.est)
 n <- dim(df_genes)[1]
@@ -17,66 +22,176 @@ PC.est <- cov2cor(Prec.est)
 # begin by looking at the raw data.
 ##
 alpha <- apply(PC.est,2, function(x){sum(abs(x))-1})
-plot(sort(alpha))
-pc.est.max.alpha <- order(alpha,decreasing = TRUE)[1:2]
-cat(colnames(PC.est)[order(alpha,decreasing = TRUE)[1:2]], "\n")
+p_alpha_emperical <- make_alpha_plot(alpha,"Emperical estimated alpha")
 
 
+
+
+######################
+#glasso method
+#######################
 lam_max <- 0.2*max(abs(Sigma.est - diag(diag(Sigma.est))))
 lam_min <- 0.067 * lam_max
 lambdas.glasso <- exp(seq(log(lam_min),log(lam_max), length.out = n.lambda))
 glasso.res   <- estimator_glasso(Sigma.est,n, lambdas.glasso,gamma = gamma)
-plot(glasso.res$path.loss$nEdges,glasso.res$path.loss$BIC_gamma)
-glasso.best <- which.min(glasso.res$path.loss$BIC_gamma)
-alpha.glasso <- apply(cov2cor(glasso.res$path[,,glasso.best]),2, function(x){sum((abs(x)^(3/4)))-1})
-cat(order(alpha.glasso,decreasing = TRUE)[1:2], "\n")
+Optim.glasso <- get_optimal_matrix(glasso.res$path, glasso.res$path.loss)
+p_glasso    <- make_plot_matrix(Optim.glasso$Theta_opt, "GLasso",
+                                base_size = 6, title_size = 8,
+                                axis_title_size = 6, axis_text_size = 5,
+                                tick_length_pt = 1)
+p_alpha_glasso <- make_alpha_plot(Optim.glasso$alpha,"GLasso")
 
 
+
+######################
+#corrglasso method
+#######################
 lam_max <- 0.3*max(abs(Corr.est - diag(diag(Corr.est))))
 lam_min <- 0.09 * lam_max
 lambdas.cglasso <- exp(seq( log(lam_min),log(lam_max), length.out = n.lambda))
 cglasso.res   <- estimator_corglasso(Corr.est,n, lambdas.cglasso,gamma = 0.5)
-plot(cglasso.res$path.loss$nEdges,cglasso.res$path.loss$BIC_gamma)
-cglasso.best <- which.min(cglasso.res$path.loss$BIC_gamma)
-alpha.cglasso <- apply(cov2cor(cglasso.res$path[,,cglasso.best]),2, function(x){sum((abs(x)^(3/4)))-1})
-cat(order(alpha.cglasso,decreasing = TRUE)[1:2], "\n")
+Optim.cglasso <- get_optimal_matrix(cglasso.res$path, cglasso.res$path.loss)
+p_corglasso    <- make_plot_matrix(Optim.cglasso$Theta_opt, "corrGLasso",
+                                   base_size = 6, title_size = 8,
+                                   axis_title_size = 6, axis_text_size = 5,
+                                   tick_length_pt = 1)
+p_alpha_corglasso <- make_alpha_plot(Optim.cglasso$alpha,"corrGLasso")
 
 
-lam_max <- 0.1*max(abs(Sigma.est - diag(diag(Sigma.est))))
-lam_min <- 0.3 * lam_max
-lambdas.pcglasso <- 2*exp(seq(log(lam_max),log(lam_min), length.out = n.lambda))
-pcglasso.est <- estimator_pcglasso(Sigma.est, n, lambdas.pcglasso,gamma=gamma, verbose = 1) # 55 minutes
-plot(pcglasso.est$path.loss$nEdges,pcglasso.est$path.loss$BIC_gamma)
-print(rbind(
-  pcglasso.est$path.loss$nEdges,
-  pcglasso.est$path.loss$loglik
-))
-pcglasso.est <- lambda_grid(Sigma.est,0,lambdas= lambdas.pcglasso, max.iter=500,verbose = T)
-# [1,]       0.0    939.00   1001.00   1154.00   1248.00   1449.00   1611.00   1748.00   1939.00   2113.00
-# [2,] -162611.9 -91257.29 -88302.49 -83933.69 -81556.08 -77028.26 -75028.52 -73155.04 -71503.01 -69978.31
+######################
+#pcglasso method
+#######################
+lambdas.pcglasso <- seq(1,0.1, length.out = n.lambda)
+pcglasso.est <- lambda_grid(Sigma.est,
+                            0,
+                            lambdas= lambdas.pcglasso,
+                            max.iter=500,
+                            Q_init=PC.est,
+                            verbose = T)
 precision_array <- array(NA, dim=c(dim(Sigma.est)[1], dim(Sigma.est)[2], length(lambdas.pcglasso)))
 for(i in 1:length(lambdas.pcglasso)){
   precision_array[,,i] <- pcglasso.est$solutions[[i]]$Sinv
-  alpha.temp <- apply(cov2cor(precision_array[,,i]),
-                      2, function(x){sum(abs(x))-1})
-  cat(colnames(PC.est)[order(alpha.temp,decreasing = TRUE)[1:3]], "\n")
+
 }
+
 loss_path <- evaluate_objective_path(precision_array, Sigma.est, n, gamma = gamma)
-plot(loss_path$nEdges,loss_path$BIC_gamma)
+
+Optim.pcglasso <- get_optimal_matrix(precision_array, loss_path)
+p_pcglasso    <- make_plot_matrix(Optim.pcglasso$Theta_opt, "PCGLasso",
+                                  base_size = 6, title_size = 8,
+                                   axis_title_size = 6, axis_text_size = 5,
+                                   tick_length_pt = 1)
+p_alpha_pcglasso <- make_alpha_plot(Optim.pcglasso$alpha,"PCGLasso")
 
 
-alpha.pc <- apply(cov2cor(precision_array[,,which.min(loss_path$BIC_gamma)]),
-                  2, function(x){sum(abs(x))-1})
-cat(colnames(PC.est)[order(alpha.pc,decreasing = TRUE)[1:3]], "\n")
-pc.lasso.est.max.alpha <- order(alpha.pc,decreasing = TRUE)[1:2]
-lambdas.pcglasso2 <- seq(1,0.1, length.out = n.lambda)
-pcglasso.est2 <- lambda_grid(Sigma.est,0,lambdas= lambdas.pcglasso2, max.iter=500,Q_init=PC.est,verbose = T)
-precision_array2 <- array(NA, dim=c(dim(Sigma.est)[1], dim(Sigma.est)[2], length(lambdas.pcglasso2)))
-for(i in 1:length(lambdas.pcglasso2)){
-  precision_array2[,,i] <- pcglasso.est2$solutions[[i]]$Sinv
-  alpha.temp <- apply(cov2cor(precision_array2[,,i]),
-                                  2, function(x){sum(abs(x))-1})
-  cat(colnames(PC.est)[order(alpha.temp,decreasing = TRUE)[1:3]], "\n")
-}
 
-loss_path2 <- evaluate_objective_path(precision_array2, Sigma.est, n, gamma = gamma)
+
+#screening method threshold method
+# does not screen since n suff big compared to p
+Res <- screening_vars_SMZL2024(X=df_genes,
+                               mat_type="cov",
+                               mat= Sigma.est,
+                               var_inds=1:dim(df_genes)[2],
+                               method="max")
+Res <- sta_thresholding_perc(X = df_genes,
+                      mat_type = "cov",
+                      mat = Sigma.est,
+                      var_inds = 1:dim(df_genes)[2],
+                      true_mat=NULL, perc = 0.05)
+Res.ipchd <- sta_ipchd(X = df_genes,
+          mat_type = "cov",
+          mat = Res$mat,
+          var_inds = 1:dim(df_genes)[2],
+          overest_type = "frac")
+# does not give reasonable results
+#space.res <- estimator_space(Sigma.est,n,lambdas.pcglasso2, data=df_genes, gamma= gamma, min_scale=log(0.2),max_scale = log(1))
+q90 <- quantile(abs(PC.est-diag(diag(PC.est))),.90)
+ind <- abs(PC.est) < q90
+PC.est.thres <- PC.est
+PC.est.thres[ind] <- 0
+
+alpha <- apply(PC.est.thres,2, function(x){sum(abs(x))-1})
+p_alpha_emperical <- make_alpha_plot(alpha,"Thresholded")
+p_emp <- make_plot_matrix(PC.est.thres, "Thresholded",
+                          base_size = 6, title_size = 8,
+                          axis_title_size = 6, axis_text_size = 5,
+                          tick_length_pt = 1)
+
+fig <- ((p_glasso | p_corglasso) /
+          (p_pcglasso |p_emp ))
+print(fig)
+ggsave(
+  "matrices_optimal_cancer.png",
+  plot = fig, width = 7, height = 4
+)
+
+alphas <- list(
+  "GLasso"     = Optim.glasso$alpha,
+  "Cor-GLasso" = Optim.cglasso$alpha,
+  "PC-GLasso"   = Optim.pcglasso$alpha,
+  "Threshold"      = alpha
+)
+fig_alpha <- make_alpha_grid(alphas, ncol = 2, common_y = FALSE)
+print(fig_alpha)
+ggsave("alphas_grid_caner.png", plot = fig_alpha, width = 7, height = 4, dpi = 300)
+
+
+
+
+df_glasso <- data.frame(
+  Edges  = glasso.res$path.loss$nEdges,
+  BIC    = glasso.res$path.loss$BIC_gamma,
+  Method = "GLasso"
+)
+
+df_corglasso <- data.frame(
+  Edges  = cglasso.res$path.loss$nEdges,
+  BIC    = cglasso.res$path.loss$BIC_gamma,
+  Method = "Cor-GLasso"
+)
+
+
+df_pcglasso <- data.frame(
+  Edges  = loss_path$nEdges,
+  BIC    = loss_path$BIC_gamma,
+  Method = "PC-GLasso"
+)
+# Combine all
+df_all <- rbind(df_glasso, df_corglasso, df_pcglasso)#,df_pcglasso_alpha)
+
+# Plot
+# Dynamic method label
+#label_pcglasso_opt <- paste("PC-GLasso", " alpha=", round(optimal_alpha, 3), sep = "")
+
+
+colors_named <- c(
+  "GLasso"     = "#1b9e77",
+  "Cor-GLasso" = "#7570b3",
+  "PC-GLasso"  = "#d95f02")
+#"Hub-Glasso" = "#e6ab02"
+# Use the *value* of the label as name
+#  setNames("#e6ab02", label_pcglasso_opt)
+#)
+
+fig <- ggplot(df_all, aes(x = Edges, y = BIC, color = Method)) +
+  geom_line(linewidth = 1.1) +
+  scale_color_manual(values = colors_named) +
+  labs(x = "#Edges", y = "BIC") +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 8),
+    legend.box = "horizontal"
+  ) +
+  coord_cartesian( xlim = c(0, 4000))
+
+print(fig)
+ggsave(
+  "BIC_fig_cancer.png",
+  plot = fig, width = 7, height = 4
+)
+plot(sort(diag(Optim.pcglasso$Theta_opt), decreasing = T),ylab='Diagonal values',xlab='')
+cat('HUBS identified by Hub method: SCARNA7, MIR3609, SEMG1, SEMG2, RN7SK \n')
+cat('largest diagonal = ',gene.names[order(diag(Optim.pcglasso$Theta_opt),decreasing = T)[1:5]],'\n')
+

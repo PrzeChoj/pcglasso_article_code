@@ -267,8 +267,14 @@ get_alpha <- function(Theta,scale=1) {
     sum(abs(x)^scale) - 1
   }))
 }
+make_plot_matrix <- function(my_matrix, my_title,
+                             x_lab = "Column", y_lab = "Row",
+                             base_size = 6,         # overall baseline
+                             title_size = 8,
+                             axis_title_size = 6,
+                             axis_text_size = 5,
+                             tick_length_pt = 1) {
 
-make_plot_matrix <- function(my_matrix, my_title) {
   matrix_data <- my_matrix != 0
   df_matrix <- as.data.frame(as.table(matrix_data))
   colnames(df_matrix) <- c("Row", "Column", "Value")
@@ -283,21 +289,61 @@ make_plot_matrix <- function(my_matrix, my_title) {
     geom_tile(color = "white") +
     scale_fill_gradient(low = "white", high = "blue", name = "Non-Zero") +
     labs(
-      title = paste(my_title, ", nnz =", nnz),
-      x = NULL,
-      y = NULL
+      title = paste(my_title, ", non-zero = ", round(100*(nnz-dim(matrix_data)[1])/(dim(matrix_data)[1]^2 - dim(matrix_data)[1]),0),'%', sep = ""),
+      x = x_lab,
+      y = y_lab
     ) +
     scale_x_continuous(breaks = seq(0, ncol(my_matrix), by = 20)) +
-    scale_y_reverse(breaks = seq(0, nrow(my_matrix), by = 20)) +  # Reverse to match matrix layout
-    coord_fixed() +  # Keep aspect ratio 1:1
-    theme_minimal(base_size = 12) +
+    scale_y_reverse(breaks = seq(0, nrow(my_matrix), by = 20)) +
+    coord_fixed() +
+    theme_minimal(base_size = base_size) +
     theme(
-      panel.grid       = element_blank(),
-      axis.ticks       = element_line(),
-      legend.position  = "none",
-      panel.background = element_rect(fill = "white", color = NA),
-      plot.background  = element_rect(fill = "white", color = NA),
-      plot.title       = element_text(hjust = 0.5),  # center title
+      panel.grid          = element_blank(),
+      axis.ticks          = element_line(linewidth = 0.2),
+      axis.ticks.length   = grid::unit(tick_length_pt, "pt"),
+      legend.position     = "none",
+      panel.background    = element_rect(fill = "white", color = NA),
+      plot.background     = element_rect(fill = "white", color = NA),
+      plot.title          = element_text(size = title_size, hjust = 0.5, margin = margin(b = 2)),
+      axis.title.x        = element_text(size = axis_title_size, margin = margin(t = 2)),
+      axis.title.y        = element_text(size = axis_title_size, margin = margin(r = 4)),
+      axis.text.x         = element_text(size = axis_text_size),
+      axis.text.y         = element_text(size = axis_text_size),
       plot.title.position = "plot"
     )
+}
+
+
+# Helper to make a single sorted-alpha plot
+make_alpha_plot <- function(alpha, title, ylims = NULL) {
+  a <- alpha[is.finite(alpha)]
+  stopifnot(length(a) > 0)
+  a <- sort(a)
+  df <- data.frame(idx = seq_along(a), alpha = a)
+
+  p <- ggplot(df, aes(x = idx, y = alpha)) +
+    geom_point(size = 0.9, alpha = 0.9) +
+    geom_line(linewidth = 0.3) +
+    labs(title = title, x = "Order statistic index", y = expression(alpha)) +
+    theme_minimal(base_size = 11) +
+    theme(plot.title.position = "plot", panel.grid.minor = element_blank())
+
+  if (!is.null(ylims)) p <- p + scale_y_continuous(limits = ylims)
+  p
+}
+
+
+# Build a grid of alpha plots from a named list
+make_alpha_grid <- function(alpha_list, ncol = 2, common_y = TRUE) {
+  stopifnot(length(alpha_list) > 0)
+  if (is.null(names(alpha_list))) {
+    names(alpha_list) <- paste0("Series ", seq_along(alpha_list))
+  }
+  ylims <- if (common_y) range(unlist(alpha_list), finite = TRUE, na.rm = TRUE) else NULL
+
+  plots <- lapply(names(alpha_list), function(nm) {
+    make_alpha_plot(alpha_list[[nm]], nm, ylims)
+  })
+  # Arrange as a grid with patchwork
+  wrap_plots(plots, ncol = ncol)
 }

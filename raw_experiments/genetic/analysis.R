@@ -1,6 +1,5 @@
 #setwd("./raw_experiments/genetic/")
 source("../estimation_function.R")
-
 gamma <- 0.5
 n.lambda <- 100
 lambda_min_ratio = 0.3
@@ -166,39 +165,6 @@ ggsave(
 )
 
 
-# Helper to make a single sorted-alpha plot
-make_alpha_plot <- function(alpha, title, ylims = NULL) {
-  a <- alpha[is.finite(alpha)]
-  stopifnot(length(a) > 0)
-  a <- sort(a)
-  df <- data.frame(idx = seq_along(a), alpha = a)
-
-  p <- ggplot(df, aes(x = idx, y = alpha)) +
-    geom_point(size = 0.9, alpha = 0.9) +
-    geom_line(linewidth = 0.3) +
-    labs(title = title, x = "Order statistic index", y = expression(alpha)) +
-    theme_minimal(base_size = 11) +
-    theme(plot.title.position = "plot", panel.grid.minor = element_blank())
-
-  if (!is.null(ylims)) p <- p + scale_y_continuous(limits = ylims)
-  p
-}
-
-
-# Build a grid of alpha plots from a named list
-make_alpha_grid <- function(alpha_list, ncol = 2, common_y = TRUE) {
-  stopifnot(length(alpha_list) > 0)
-  if (is.null(names(alpha_list))) {
-    names(alpha_list) <- paste0("Series ", seq_along(alpha_list))
-  }
-  ylims <- if (common_y) range(unlist(alpha_list), finite = TRUE, na.rm = TRUE) else NULL
-
-  plots <- lapply(names(alpha_list), function(nm) {
-    make_alpha_plot(alpha_list[[nm]], nm, ylims)
-  })
-  # Arrange as a grid with patchwork
-  wrap_plots(plots, ncol = ncol)
-}
 
 # --- your original set (if you still want it) ------------------------------
 alphas <- list(
