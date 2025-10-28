@@ -4,7 +4,7 @@ library(pbmcapply)
 
 run_single <- function(Q, n, split_train = 0.7,
                        alpha_grid = sort(unique(c(seq(-0.1, 0.1, length.out = 10), 0))),
-                       nlambda = 100, lambda.min.ratio = 0.01,
+                       nlambda = 100, lambda.min.ratio = 0.01, pcglasso_tolerance = 0.001,
                        estimators = NULL) {
   p <- ncol(Q)
   L <- Cholesky(Matrix(forceSymmetric(Q), sparse = TRUE), LDL = FALSE, perm = TRUE)
@@ -38,7 +38,7 @@ run_single <- function(Q, n, split_train = 0.7,
 
   res_list <- list()
   for (meth in names(estimators)) {
-    est <- estimators[[meth]](S_full, S_train, S_test, n, n_train, n_test, lambdas, alpha_grid=alpha_grid, data=data, train=train, test=test)
+    est <- estimators[[meth]](S_full, S_train, S_test, n, n_train, n_test, lambdas, alpha_grid=alpha_grid, data=data, train=train, test=test, pcglasso_tolerance = pcglasso_tolerance)
     for (sel in names(est)) {
       sel_name <- paste0(meth, "_", gsub(".*_", "", sel)) # eg "GL_bic"
       Qhat <- est[[sel]]$Q
@@ -55,7 +55,7 @@ run_single <- function(Q, n, split_train = 0.7,
   df
 }
 run_experiments <- function(Q, ns = c(200,500,1000), sim = 50,
-                            mc_cores = parallel::detectCores(), seed=1234, estimators=NULL, ...) {
+                            mc_cores = parallel::detectCores(), seed=1234, estimators=NULL, pcglasso_tolerance = 0.001, ...) {
   grid <- expand.grid(n = ns, rep = seq_len(sim))
   RNGkind("L'Ecuyer-CMRG")
   set.seed(seed)
@@ -63,7 +63,7 @@ run_experiments <- function(Q, ns = c(200,500,1000), sim = 50,
     seq_len(nrow(grid)),
     function(i) {
       row <- grid[i, ]
-      df  <- run_single(Q, n = row$n, estimators = estimators, ...)
+      df  <- run_single(Q, n = row$n, estimators = estimators, pcglasso_tolerance = pcglasso_tolerance, ...)
       cbind(n = row$n, rep = row$rep, df)
     },
     mc.cores    = mc_cores,

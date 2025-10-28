@@ -1,11 +1,11 @@
 # ---- PC-GLasso Estimator ----
-estimator_pcglasso <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas, alpha_grid, ...) {
+estimator_pcglasso <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas, alpha_grid, pcglasso_tolerance, ...) {
   # BIC selection
   t_bic <- system.time({
     best_bic <- list(bic = Inf)
     for (a in alpha_grid) {
       path <- pcglassoPath(S_full, alpha = a, max_edge_fraction = 0.3,
-                           min_lambda_ratio = min(lambdas) / max(lambdas), nlambda = length(lambdas))
+                           min_lambda_ratio = min(lambdas) / max(lambdas), nlambda = length(lambdas), tolerance = pcglasso_tolerance)
       loss <- evaluate_objective_path(path, Sigma = S_full, n = n, gamma = 0.5)
       i <- which.min(loss$BIC_gamma)
       if (loss$BIC_gamma[i] < best_bic$bic) {
@@ -19,7 +19,7 @@ estimator_pcglasso <- function(S_full, S_train, S_test, n, n_train, n_test, lamb
     best_cv <- list(loglik = -Inf)
     for (a in alpha_grid) {
       path <- pcglassoPath(S_train, alpha = a, max_edge_fraction = 0.3,
-                           min_lambda_ratio = min(lambdas) / max(lambdas), nlambda = length(lambdas))
+                           min_lambda_ratio = min(lambdas) / max(lambdas), nlambda = length(lambdas), tolerance = pcglasso_tolerance)
       loss <- evaluate_objective_path(path, Sigma = S_test, n = n_test, gamma = 0.5)
       j <- which.max(loss$loglik)
       if (loss$loglik[j] > best_cv$loglik) {
