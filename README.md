@@ -7,6 +7,7 @@ This repository contains code to reproduce the experiments and figures from the 
 
 ## TODO
 
+* File for Section 4.1 is inconsistent with plots, and have no Figure 4
 * Check whether those all dependente packages are listed to install
 * Delete the `raw_expetiments` folder
 
