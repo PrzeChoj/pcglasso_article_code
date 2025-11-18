@@ -1,10 +1,11 @@
 library(pcglassoFast)
 library(glasso)
 library(space) # remotes::install_version("space", version = "0.1-1.1")
+
 estimator_space <- function(S_full, n, lambdas, data, gamma = 0, min_scale= log(0.7), max_scale =log(4)) {
   t_full <- system.time({
     p <- ncol(S_full)
-    l1_full    <- sqrt(n) * qnorm(1 - 0.1 / (2 * p^2)) # typo in paper/package
+    l1_full    <- sqrt(n) * qnorm(1 - 0.1 / (2 * p^2)) # typo in SPACE paper/package
     scale_full <- exp(seq(max_scale, min_scale, length.out = length(lambdas)))
     res_space  <- array(0, dim = c(p, p, length(scale_full)))
     vars_full  <- diag(S_full)
@@ -78,7 +79,6 @@ estimator_corglasso <- function(S_full, n, lambdas, gamma =0) {
 # Requirements in your env:
 # - cov2cor_inv(wi_corr_array, inv_vars) -> covariance-scale precision array
 # - evaluate_objective_path(prec_path, Sigma = S_full, n = n, gamma = gamma)
-
 estimator_hubcorglasso <- function(
     S_full, n, lambdas, gamma = 0,
     eps_W = 0.1,
@@ -162,7 +162,6 @@ estimator_hubcorglasso <- function(
   )
 }
 
-
 estimator_pcglasso <- function(S_full,
                                n,
                                lambdas,
@@ -223,6 +222,72 @@ estimator_pcglasso <- function(S_full,
   )
 }
 
+# devtools::install_github("PrzeChoj/PCGLASSOcpp")
+estimator_pcglasso_cpp <- function(S_full,
+                                   n,
+                                   lambdas,
+                                   alpha_grid = 0,
+                                   gamma = 0,
+                                   R_start = NULL,
+                                   verbose = 0) {
+  t_full <- system.time({
+    pc_path_list  <- list()
+    pc_loss_list  <- list()
+    pc_path_list_all <- list()
+    if(is.null(R_start))
+    {
+      R_start <- diag(nrow(S_full))
+    }
+
+    for (a in alpha_grid) {
+      path_cpp <- PCGLASSOcpp::lambda_grid(
+        S_full, alpha = a, lambdas = lambdas, Q_inv_init = R_start, Q_init = solve(R_start)
+      )
+      K <- length(path_cpp$lambdas)
+      path <- list(
+        path_optimization_time = NA,
+        iters = sapply(1:K, function(k){path_cpp$solutions[[k]]$n_iters}),
+        objective = sapply(1:K, function(k){path_cpp$solutions[[k]]$loss[length(path_cpp$solutions[[k]]$loss)]}),
+        W_path = lapply(1:K, function(k){diag(path_cpp$solutions[[k]]$D) %*% path_cpp$solutions[[k]]$Q %*% diag(path_cpp$solutions[[k]]$D)}),
+        Wi_path = lapply(1:K, function(k){diag(1/path_cpp$solutions[[k]]$D) %*% path_cpp$solutions[[k]]$Q_inv %*% diag(1/path_cpp$solutions[[k]]$D)}),
+        D_path = lapply(1:K, function(k){path_cpp$solutions[[k]]$D}),
+        Ri_path = lapply(1:K, function(k){path_cpp$solutions[[k]]$Q_inv}),
+        R_path = lapply(1:K, function(k){path_cpp$solutions[[k]]$Q}),
+        lambdas = path_cpp$lambdas
+      )
+
+      p <- nrow(path$W_path[[1]])
+      K <- length(path$W_path)
+
+      # Preallocate 3D array
+      W <- array(0, dim = c(p, p, K))
+
+      # Fill the array
+      for (k in seq_len(K)) {
+        W[,,k] <- path$W_path[[k]]
+      }
+      pc_path_list_all[[as.character(a)]]  <- path
+      pc_path_list[[as.character(a)]] <- W
+      pc_loss_list[[as.character(a)]] <- evaluate_objective_path(path, Sigma = S_full, n = n, gamma = gamma)
+    }
+  })
+  if(length(pc_path_list) ==1)
+  {
+    return(list(
+      path       = W,
+      path.all   = pc_path_list_all[[1]],
+      path.loss  = pc_loss_list[[1]],
+      timing     = as.numeric(t_full["elapsed"])
+    ))
+  }
+  list(
+    path       = pc_path_list,
+    path.all   = pc_path_list_all,
+    path.loss  = pc_loss_list,
+    alpha_grid = alpha_grid,
+    timing     = as.numeric(t_full["elapsed"])
+  )
+}
 
 estimator_glasso <- function(S_full, n, lambdas, gamma = 0) {
   t_full <- system.time({
@@ -257,7 +322,6 @@ get_optimal_matrix <- function(path, path.loss, criterion = "BIC_gamma", max_edg
     alpha = get_alpha(path[,,idx_opt])
   ))
 }
-
 
 #' get the alpha values from a precision matrix
 #' @param Theta precision matrix
@@ -313,7 +377,6 @@ make_plot_matrix <- function(my_matrix, my_title,
     )
 }
 
-
 # Helper to make a single sorted-alpha plot
 make_alpha_plot <- function(alpha, title, ylims = NULL) {
   a <- alpha[is.finite(alpha)]
@@ -331,7 +394,6 @@ make_alpha_plot <- function(alpha, title, ylims = NULL) {
   if (!is.null(ylims)) p <- p + scale_y_continuous(limits = ylims)
   p
 }
-
 
 # Build a grid of alpha plots from a named list
 make_alpha_grid <- function(alpha_list, ncol = 2, common_y = TRUE) {
