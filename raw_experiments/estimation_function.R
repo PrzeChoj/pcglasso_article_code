@@ -176,67 +176,7 @@ estimator_pcglasso <- function(S_full,
     pc_path_list_all <- list()
     if(is.null(R_start))
     {
-      R_start <- diag(nrow(S_full))
-    }
-
-    for (a in alpha_grid) {
-      path <- pcglassoPath(
-        S_full,
-        alpha = a,
-        max_edge_fraction = max_edge_fraction,
-        lambdas = lambdas,
-        R0 = R_start,
-        verbose = verbose
-      )
-
-      p <- nrow(path$W_path[[1]])
-      K <- length(path$W_path)
-
-      # Preallocate 3D array
-      W <- array(0, dim = c(p, p, K))
-
-      # Fill the array
-      for (k in seq_len(K)) {
-        W[,,k] <- path$W_path[[k]]
-      }
-      pc_path_list_all[[as.character(a)]]  <- path
-      pc_path_list[[as.character(a)]] <- W
-      pc_loss_list[[as.character(a)]] <- evaluate_objective_path(path, Sigma = S_full, n = n, gamma = gamma)
-    }
-  })
-  if(length(pc_path_list) ==1)
-  {
-    return(list(
-      path       = W,
-      path.all   = pc_path_list_all[[1]],
-      path.loss  = pc_loss_list[[1]],
-      timing     = as.numeric(t_full["elapsed"])
-    ))
-  }
-  list(
-    path       = pc_path_list,
-    path.all   = pc_path_list_all,
-    path.loss  = pc_loss_list,
-    alpha_grid = alpha_grid,
-    timing     = as.numeric(t_full["elapsed"])
-  )
-}
-
-estimator_pcglasso_diff_start <- function(S_full,
-                                          n,
-                                          lambdas,
-                                          alpha_grid = 0,
-                                          gamma = 0,
-                                          max_edge_fraction = 0.3,
-                                          R_start = NULL,
-                                          verbose = 0) {
-  t_full <- system.time({
-    pc_path_list  <- list()
-    pc_loss_list  <- list()
-    pc_path_list_all <- list()
-    if(is.null(R_start))
-    {
-      R_start <- cov2cor(MASS::ginv(S_full))
+      R_start <- cov2cor(MASS:ginv(S_full))
     }
 
     for (a in alpha_grid) {
@@ -296,7 +236,7 @@ estimator_pcglasso_cpp <- function(S_full,
     pc_path_list_all <- list()
     if(is.null(R_start))
     {
-      R_start <- diag(nrow(S_full))
+      R_start <- cov2cor(MASS:ginv(S_full))
     }
 
     for (a in alpha_grid) {
