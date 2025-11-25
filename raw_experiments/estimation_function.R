@@ -176,7 +176,7 @@ estimator_pcglasso <- function(S_full,
     pc_path_list_all <- list()
     if(is.null(R_start))
     {
-      R_start <- cov2cor(MASS:ginv(S_full))
+      R_start <- cov2cor(MASS::ginv(S_full))
     }
 
     for (a in alpha_grid) {
@@ -236,12 +236,12 @@ estimator_pcglasso_cpp <- function(S_full,
     pc_path_list_all <- list()
     if(is.null(R_start))
     {
-      R_start <- cov2cor(MASS:ginv(S_full))
+      R_start <- cov2cor(MASS::ginv(S_full))
     }
 
     for (a in alpha_grid) {
       path_cpp <- PCGLASSOcpp::lambda_grid(
-        S_full, alpha = a, lambdas = lambdas, Q_inv_init = R_start, Q_init = solve(R_start)
+        S_full, alpha = a, lambdas = lambdas, Q_inv_init = solve(R_start), Q_init = R_start
       )
       K <- length(path_cpp$lambdas)
       path <- list(

@@ -1,11 +1,13 @@
 #setwd("./raw_experiments/genetic/")
 source("../estimation_function.R")
+#source("./raw_experiments/estimation_function.R")
+
 gamma <- 0.5
 n.lambda <- 100
 lambda_min_ratio = 0.3
 data(X.Sanger)
 Sigma.Sanger <- cov(X.Sanger)
-n <- dim(X)[1]
+n <- dim(X.Sanger)[1]
 PC.est <- cov2cor(solve(Sigma.Sanger))
 
 alpha.pcest<-  get_alpha(PC.est,0.5)
@@ -18,7 +20,7 @@ glasso.res   <- estimator_glasso(Sigma.Sanger,n, lambdas,gamma = gamma)
 Optim.glasso <- get_optimal_matrix(glasso.res$path, glasso.res$path.loss)
 
 
-space.res <-    estimator_space(Sigma.Sanger,n, lambdas, X,gamma = gamma)
+space.res <-    estimator_space(Sigma.Sanger,n, lambdas, X.Sanger,gamma = gamma)
 Optim.space <- get_optimal_matrix(space.res$path, space.res$path.loss)
 
 lam_max <- max(abs(cov2cor(Sigma.Sanger) - diag(diag(cov2cor(Sigma.Sanger)))))
@@ -27,6 +29,9 @@ lambdas_corr <- seq(lam_max, lam_min, length.out = n.lambda)
 
 pcglasso.res <- estimator_pcglasso(Sigma.Sanger, n, lambdas_corr, alpha_grid = 0, gamma = gamma)
 Optim.pcglasso <- get_optimal_matrix(pcglasso.res$path, pcglasso.res$path.loss)
+
+pcglasso_cpp.res <- estimator_pcglasso_cpp(Sigma.Sanger, n, lambdas_corr, alpha_grid = 0, gamma = gamma)
+Optim.pcglasso_cpp <- get_optimal_matrix(pcglasso_cpp.res$path, pcglasso_cpp.res$path.loss)
 
 Hcorrglasso.res <- estimator_hubcorglasso(Sigma.Sanger,n, 15*lambdas_corr, gamma = gamma)
 Optim.Hcorrglasso <- get_optimal_matrix(Hcorrglasso.res$path, Hcorrglasso.res$path.loss)
@@ -82,6 +87,11 @@ df_pcglasso <- data.frame(
   BIC    = pcglasso.res$path.loss[[as.character(0)]]$BIC_gamma,
   Method = "PC-GLasso"
 )
+df_pcglasso_cpp <- data.frame(
+  Edges  = pcglasso_cpp.res$path.loss$nEdges,
+  BIC    = pcglasso_cpp.res$path.loss$BIC_gamma,
+  Method = "PC-GLasso-C++"
+)
 df_pcglasso_alpha <- data.frame(
   Edges  = pcglasso.res$path.loss[[as.character(optimal_alpha)]]$nEdges,
   BIC    = pcglasso.res$path.loss[[as.character(optimal_alpha)]]$BIC_gamma,
@@ -93,7 +103,7 @@ df_hubglasso <- data.frame(
   Method = "Hub-Glasso"
 )
 # Combine all
-df_all <- rbind(df_glasso, df_corglasso, df_space, df_pcglasso)#,df_pcglasso_alpha)
+df_all <- rbind(df_glasso, df_corglasso, df_space, df_pcglasso, df_pcglasso_cpp)#,df_pcglasso_alpha)
 
 # Plot
 # Dynamic method label
@@ -104,7 +114,8 @@ colors_named <- c(
   "GLasso"     = "#1b9e77",
   "Cor-GLasso" = "#7570b3",
   "SPACE"      = "#e7298a",
-  "PC-GLasso"  = "#d95f02")
+  "PC-GLasso"  = "#d95f02",
+  "PC-GLasso-C++"  = "#1f78b4")
   #"Hub-Glasso" = "#e6ab02"
   # Use the *value* of the label as name
 #  setNames("#e6ab02", label_pcglasso_opt)
@@ -124,10 +135,10 @@ fig <- ggplot(df_all, aes(x = Edges, y = BIC, color = Method)) +
   coord_cartesian(xlim = c(0, 1000), ylim = c(28000, 35000))
 
 print(fig)
-ggsave(
-  "BIC_fig.png",
-  plot = fig, width = 7, height = 4
-)
+# ggsave(
+#   "BIC_fig.png",
+#   plot = fig, width = 7, height = 4
+# )
 
 
 library(patchwork)  # or library(gridExtra)
