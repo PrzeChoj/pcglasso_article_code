@@ -1,5 +1,5 @@
 # ---- PC-GLasso Estimator ----
-estimator_pcglasso_old_start <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas, alpha_grid, pcglasso_tolerance, ...) {
+estimator_pcglasso_start_I <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas, alpha_grid, pcglasso_tolerance, ...) {
   # BIC selection
   t_bic <- system.time({
     best_bic <- list(bic = Inf)
@@ -34,7 +34,7 @@ estimator_pcglasso_old_start <- function(S_full, S_train, S_test, n, n_train, n_
   )
 }
 
-estimator_pcglasso <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas, alpha_grid, pcglasso_tolerance, ...) {
+estimator_pcglasso_start_C <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas, alpha_grid, pcglasso_tolerance, ...) {
   # BIC selection
   t_bic <- system.time({
     best_bic <- list(bic = Inf)
