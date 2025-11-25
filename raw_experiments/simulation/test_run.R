@@ -12,15 +12,14 @@ source("simulation_functions.R")
 
 
 # 2) Common settings (you can adjust these as needed)
-set.seed(2)
+set.seed(1)
 graphics.off()
 generate.pcglasso=T
 split.train        <- 0.7      # not used directly below, but could be referenced in your functions
 ns                 <- c(200)
-sim                <- 21
+sim                <- 7#21
 nlambda            <- 50
 mc_cores           <- 7
-#mc_cores <- 1L
 alpha_grid         <- 0
 lambda.min.ratio   <- 0.1
 
@@ -36,77 +35,68 @@ if (!generate.pcglasso) {
 Q <- (Q + t(Q)) / 2
 
 # 4) Run the experiment
-res1 <- run_experiments(
+res0_8 <- run_experiments(
   Q = Q,
   ns          = ns,
   sim         = sim,
   mc_cores    = mc_cores,
   nlambda     = nlambda,
-  lambda.min.ratio = lambda.min.ratio,
-  alpha_grid  = alpha_grid,
-  pcglasso_tolerance = 0.1
-)
-res2 <- run_experiments(
-  Q = Q,
-  ns          = ns,
-  sim         = sim,
-  mc_cores    = mc_cores,
-  nlambda     = nlambda,
-  lambda.min.ratio = lambda.min.ratio,
+  lambda.min.ratio = 0.8,
   alpha_grid  = alpha_grid,
   pcglasso_tolerance = 0.01
 )
-res3 <- run_experiments(
+
+res0_1 <- run_experiments(
   Q = Q,
   ns          = ns,
   sim         = sim,
   mc_cores    = mc_cores,
   nlambda     = nlambda,
-  lambda.min.ratio = lambda.min.ratio,
+  lambda.min.ratio = 0.1,
   alpha_grid  = alpha_grid,
-  pcglasso_tolerance = 0.001
+  pcglasso_tolerance = 0.01
 )
 
 #####
-res1_summarized <- res1 %>%
+res0_1_summarized <- res0_1 %>%
   select(method, timing, rmse) %>%
   group_by(method) %>%
   summarise(timing = mean(timing), rmse = mean(rmse))
-res2_summarized <- res2 %>%
-  select(method, timing, rmse) %>%
-  group_by(method) %>%
-  summarise(timing = mean(timing), rmse = mean(rmse))
-res3_summarized <- res3 %>%
+res0_8_summarized <- res0_8 %>%
   select(method, timing, rmse) %>%
   group_by(method) %>%
   summarise(timing = mean(timing), rmse = mean(rmse))
 
-#####
+res0_1_summarized
+# A tibble: 12 × 3
+#   method        timing  rmse
+#   <chr>          <dbl> <dbl>
+# 1 CGL_bic        0.893 1.49
+# 2 CGL_cv         1.06  1.38
+# 3 GL_bic         0.220 1.63
+# 4 GL_cv          0.247 1.47
+# 5 PCGL_bic      31.8   0.621
+# 6 PCGL_cv       31.9   1.12
+# 7 PCGL_old_bic  30.2   0.514
+# 8 PCGL_old_cv   28.5   1.09
+# 9 PCGLcpp_bic    7.95  0.346
+# 10 PCGLcpp_cv    7.81  1.00
+# 11 SPACE_bic     5.64  1.01
+# 12 SPACE_cv      3.40  0.562
 
-#res1 # tolerance 0.1
-#res2 # tolerance 0.01
-#res3 # tolerance 0.001
-
-times <- rbind(
-  res1_summarized$timing, res2_summarized$timing, res3_summarized$timing
-)
-colnames(times) <- res1_summarized$method
-
-rmse <- rbind(
-  res1_summarized$rmse, res2_summarized$rmse, res3_summarized$rmse
-)
-colnames(rmse) <- res1_summarized$method
-
-times
-#        CGL_bic   CGL_cv    GL_bic     GL_cv  PCGL_bic   PCGL_cv SPACE_bic SPACE_cv
-# [1,] 0.9066667 1.045619 0.2360000 0.2700476  5.348381  8.891429  6.486762 3.875238
-# [2,] 1.1954762 1.377857 0.3181429 0.3500476 44.157048 52.304667  8.404048 5.089714
-# [3,] 1.1631905 1.341048 0.3062381 0.3455238 55.524048 71.630000  8.251000 5.004381
-rmse
-#       CGL_bic   CGL_cv   GL_bic    GL_cv  PCGL_bic  PCGL_cv SPACE_bic  SPACE_cv
-# [1,] 1.500033 1.387332 1.627034 1.489864 1.1434563 3.164260  1.035873 0.5844242
-# [2,] 1.498104 1.393602 1.627513 1.489561 0.7037663 1.437055  1.034759 0.6195062
-# [3,] 1.499412 1.397609 1.628953 1.494241 0.5013122 0.748949  1.034365 0.6415307
-
-# We can sey one can use big tolerance = 0.1 for approximately the same time as SPACE and similar results
-# but one can set better tolerance = 0.001 for 10 times more time, but very good results
+res0_8_summarized
+# A tibble: 12 × 3
+#   method        timing  rmse
+#   <chr>          <dbl> <dbl>
+# 1 CGL_bic        0.234 1.55
+# 2 CGL_cv         0.236 1.55
+# 3 GL_bic         0.142 1.63
+# 4 GL_cv          0.140 1.63
+# 5 PCGL_bic      27.3   0.659
+# 6 PCGL_cv       24.9   0.850
+# 7 PCGL_old_bic  20.4   0.600
+# 8 PCGL_old_cv   16.6   0.775
+# 9 PCGLcpp_bic    2.98  0.359
+# 10 PCGLcpp_cv    3.02  0.333
+# 11 SPACE_bic     4.80  1.02
+# 12 SPACE_cv      2.97  0.584
