@@ -4,12 +4,11 @@ estimator_pcglasso_start_I <- function(S_full, S_train, S_test, n, n_train, n_te
   t_bic <- system.time({
     best_bic <- list(bic = Inf)
     for (a in alpha_grid) {
-      path <- pcglassoPath(S_full, alpha = a, max_edge_fraction = 0.3,
-                           min_lambda_ratio = min(lambdas) / max(lambdas), nlambda = length(lambdas), tolerance = pcglasso_tolerance)
+      path <- pcglassoPath(S_full, alpha = a, max_edge_fraction = 0.3, lambdas = lambdas, tolerance = pcglasso_tolerance)
       loss <- evaluate_objective_path(path, Sigma = S_full, n = n, gamma = 0.5)
       i <- which.min(loss$BIC_gamma)
       if (loss$BIC_gamma[i] < best_bic$bic) {
-        best_bic <- list(alpha = a, lambda = path$lambda[i], bic = loss$BIC_gamma[i], W = path$W_path[[i]])
+        best_bic <- list(alpha = a, lambda = path$lambdas[i], bic = loss$BIC_gamma[i], W = path$W_path[[i]])
       }
     }
     Q_pc_bic <- (best_bic$W + t(best_bic$W))/2
@@ -18,12 +17,11 @@ estimator_pcglasso_start_I <- function(S_full, S_train, S_test, n, n_train, n_te
   t_cv <- system.time({
     best_cv <- list(loglik = -Inf)
     for (a in alpha_grid) {
-      path <- pcglassoPath(S_train, alpha = a, max_edge_fraction = 0.3,
-                           min_lambda_ratio = min(lambdas) / max(lambdas), nlambda = length(lambdas), tolerance = pcglasso_tolerance)
+      path <- pcglassoPath(S_train, alpha = a, max_edge_fraction = 0.3, lambdas = lambdas, tolerance = pcglasso_tolerance)
       loss <- evaluate_objective_path(path, Sigma = S_test, n = n_test, gamma = 0.5)
       j <- which.max(loss$loglik)
       if (loss$loglik[j] > best_cv$loglik) {
-        best_cv <- list(alpha = a, lambda = path$lambda[j], loglik = loss$loglik[j], W = path$W_path[[j]])
+        best_cv <- list(alpha = a, lambda = path$lambdas[j], loglik = loss$loglik[j], W = path$W_path[[j]])
       }
     }
     Q_pc_cv <- (best_cv$W + t(best_cv$W))/2
@@ -41,12 +39,12 @@ estimator_pcglasso_start_C <- function(S_full, S_train, S_test, n, n_train, n_te
     for (a in alpha_grid) {
       R0 <- cov2cor(MASS::ginv(S_full))
       path <- pcglassoPath(S_full, alpha = a, max_edge_fraction = 0.3,
-                           min_lambda_ratio = min(lambdas) / max(lambdas), nlambda = length(lambdas), tolerance = pcglasso_tolerance,
+                           lambdas = lambdas, tolerance = pcglasso_tolerance,
                            R0 = R0)
       loss <- evaluate_objective_path(path, Sigma = S_full, n = n, gamma = 0.5)
       i <- which.min(loss$BIC_gamma)
       if (loss$BIC_gamma[i] < best_bic$bic) {
-        best_bic <- list(alpha = a, lambda = path$lambda[i], bic = loss$BIC_gamma[i], W = path$W_path[[i]])
+        best_bic <- list(alpha = a, lambda = path$lambdas[i], bic = loss$BIC_gamma[i], W = path$W_path[[i]])
       }
     }
     Q_pc_bic <- (best_bic$W + t(best_bic$W))/2
@@ -55,14 +53,14 @@ estimator_pcglasso_start_C <- function(S_full, S_train, S_test, n, n_train, n_te
   t_cv <- system.time({
     best_cv <- list(loglik = -Inf)
     for (a in alpha_grid) {
-      R0 <- cov2cor(MASS::ginv(S_full))
+      R0 <- cov2cor(MASS::ginv(S_train))
       path <- pcglassoPath(S_train, alpha = a, max_edge_fraction = 0.3,
-                           min_lambda_ratio = min(lambdas) / max(lambdas), nlambda = length(lambdas), tolerance = pcglasso_tolerance,
+                           lambdas = lambdas, tolerance = pcglasso_tolerance,
                            R0 = R0)
       loss <- evaluate_objective_path(path, Sigma = S_test, n = n_test, gamma = 0.5)
       j <- which.max(loss$loglik)
       if (loss$loglik[j] > best_cv$loglik) {
-        best_cv <- list(alpha = a, lambda = path$lambda[j], loglik = loss$loglik[j], W = path$W_path[[j]])
+        best_cv <- list(alpha = a, lambda = path$lambdas[j], loglik = loss$loglik[j], W = path$W_path[[j]])
       }
     }
     Q_pc_cv <- (best_cv$W + t(best_cv$W))/2
@@ -98,7 +96,7 @@ estimator_pcglasso_cpp_start_I <- function(S_full, S_train, S_test, n, n_train, 
       loss <- evaluate_objective_path(path, Sigma = S_full, n = n, gamma = 0.5)
       i <- which.min(loss$BIC_gamma)
       if (loss$BIC_gamma[i] < best_bic$bic) {
-        best_bic <- list(alpha = a, lambda = path$lambda[i], bic = loss$BIC_gamma[i], W = path$W_path[[i]])
+        best_bic <- list(alpha = a, lambda = path$lambdas[i], bic = loss$BIC_gamma[i], W = path$W_path[[i]])
       }
     }
     Q_pc_bic <- (best_bic$W + t(best_bic$W))/2
@@ -107,9 +105,9 @@ estimator_pcglasso_cpp_start_I <- function(S_full, S_train, S_test, n, n_train, 
   t_cv <- system.time({
     best_cv <- list(loglik = -Inf)
     for (a in alpha_grid) {
-      R0 <- cov2cor(MASS::ginv(S_full))
+      R0 <- diag(nrow(S_train))
       path_cpp <- PCGLASSOcpp::lambda_grid(
-        S_full, alpha = a, lambdas = lambdas, Q_inv_init = solve(R0), Q_init = R0, tolerance = pcglasso_tolerance
+        S_train, alpha = a, lambdas = lambdas, Q_inv_init = solve(R0), Q_init = R0, tolerance = pcglasso_tolerance
       )
       K <- length(path_cpp$lambdas)
       path <- list(
@@ -127,7 +125,7 @@ estimator_pcglasso_cpp_start_I <- function(S_full, S_train, S_test, n, n_train, 
       loss <- evaluate_objective_path(path, Sigma = S_test, n = n_test, gamma = 0.5)
       j <- which.max(loss$loglik)
       if (loss$loglik[j] > best_cv$loglik) {
-        best_cv <- list(alpha = a, lambda = path$lambda[j], loglik = loss$loglik[j], W = path$W_path[[j]])
+        best_cv <- list(alpha = a, lambda = path$lambdas[j], loglik = loss$loglik[j], W = path$W_path[[j]])
       }
     }
     Q_pc_cv <- (best_cv$W + t(best_cv$W))/2
@@ -163,7 +161,7 @@ estimator_pcglasso_cpp_start_C <- function(S_full, S_train, S_test, n, n_train, 
       loss <- evaluate_objective_path(path, Sigma = S_full, n = n, gamma = 0.5)
       i <- which.min(loss$BIC_gamma)
       if (loss$BIC_gamma[i] < best_bic$bic) {
-        best_bic <- list(alpha = a, lambda = path$lambda[i], bic = loss$BIC_gamma[i], W = path$W_path[[i]])
+        best_bic <- list(alpha = a, lambda = path$lambdas[i], bic = loss$BIC_gamma[i], W = path$W_path[[i]])
       }
     }
     Q_pc_bic <- (best_bic$W + t(best_bic$W))/2
@@ -172,9 +170,9 @@ estimator_pcglasso_cpp_start_C <- function(S_full, S_train, S_test, n, n_train, 
   t_cv <- system.time({
     best_cv <- list(loglik = -Inf)
     for (a in alpha_grid) {
-      R0 <- cov2cor(MASS::ginv(S_full))
+      R0 <- cov2cor(MASS::ginv(S_train))
       path_cpp <- PCGLASSOcpp::lambda_grid(
-        S_full, alpha = a, lambdas = lambdas, Q_inv_init = solve(R0), Q_init = R0, tolerance = pcglasso_tolerance
+        S_train, alpha = a, lambdas = lambdas, Q_inv_init = solve(R0), Q_init = R0, tolerance = pcglasso_tolerance
       )
       K <- length(path_cpp$lambdas)
       path <- list(
@@ -192,7 +190,7 @@ estimator_pcglasso_cpp_start_C <- function(S_full, S_train, S_test, n, n_train, 
       loss <- evaluate_objective_path(path, Sigma = S_test, n = n_test, gamma = 0.5)
       j <- which.max(loss$loglik)
       if (loss$loglik[j] > best_cv$loglik) {
-        best_cv <- list(alpha = a, lambda = path$lambda[j], loglik = loss$loglik[j], W = path$W_path[[j]])
+        best_cv <- list(alpha = a, lambda = path$lambdas[j], loglik = loss$loglik[j], W = path$W_path[[j]])
       }
     }
     Q_pc_cv <- (best_cv$W + t(best_cv$W))/2
@@ -208,7 +206,7 @@ estimator_glasso <- function(S_full, S_train, S_test, n, n_train, n_test, lambda
   t_bic <- system.time({
     gl_full_path <- glasso::glassopath(S_full, rholist = lambdas, penalize.diagonal = FALSE)
     loss_gl_full <- evaluate_objective_path(gl_full_path$wi, Sigma = S_full, n = n, gamma = 0.5)
-    idx_gl_bic   <- which.min(loss_gl_full$BIC)
+    idx_gl_bic   <- which.min(loss_gl_full$BIC_gamma)
     Q_gl_bic     <- (gl_full_path$wi[,,idx_gl_bic] + t(gl_full_path$wi[,,idx_gl_bic])) / 2
   })
   t_cv <- system.time({
@@ -232,7 +230,7 @@ estimator_corglasso <- function(S_full, S_train, S_test, n, n_train, n_test, lam
     vars_full    <- diag(S_full)
     loss_cg_full <- evaluate_objective_path(cov2cor_inv(cg_full_path$wi, 1/vars_full), Sigma = S_full,
                                     n = n, gamma = 0.5)
-    idx_cg_bic   <- which.min(loss_cg_full$BIC)
+    idx_cg_bic   <- which.min(loss_cg_full$BIC_gamma)
     Theta_cg_bic <- cov2cor_inv(cg_full_path$wi[,,idx_cg_bic], 1/vars_full)
     Q_cg_bic     <- (Theta_cg_bic + t(Theta_cg_bic)) / 2
   })

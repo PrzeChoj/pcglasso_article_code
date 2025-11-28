@@ -59,31 +59,14 @@ res0_1 <- run_experiments(
 )
 
 #####
-res0_1_summarized <- res0_1 %>%
-  select(method, timing, rmse) %>%
-  group_by(method) %>%
-  summarise(timing = mean(timing), rmse = mean(rmse))
 res0_8_summarized <- res0_8 %>%
   select(method, timing, rmse) %>%
   group_by(method) %>%
   summarise(timing = mean(timing), rmse = mean(rmse))
-
-res0_1_summarized
-# # A tibble: 12 × 3
-#   method       timing  rmse
-#   <chr>         <dbl> <dbl>
-# 1 CGL_bic       0.926 1.50
-# 2 CGL_cv        1.06  1.40
-# 3 GL_bic        0.233 1.63
-# 4 GL_cv         0.264 1.49
-# 5 PCGL_C_bic   39.1   0.621
-# 6 PCGL_C_cv    46.1   1.57
-# 7 PCGL_I_bic   44.3   0.562
-# 8 PCGL_I_cv    46.9   1.48
-# 9 PCGLcpp_bic   8.77  0.441
-# 10 PCGLcpp_cv   8.31  0.976
-# 11 SPACE_bic    6.19  1.06
-# 12 SPACE_cv     3.86  0.687
+res0_1_summarized <- res0_1 %>%
+  select(method, timing, rmse) %>%
+  group_by(method) %>%
+  summarise(timing = mean(timing), rmse = mean(rmse))
 
 res0_8_summarized
 # A tibble: 12 × 3
@@ -101,3 +84,20 @@ res0_8_summarized
 # 10 PCGLcpp_cv   3.42  0.476
 # 11 SPACE_bic    5.93  1.06
 # 12 SPACE_cv     3.58  0.661
+
+res0_1_summarized
+# # A tibble: 12 × 3
+#   method       timing  rmse
+#   <chr>         <dbl> <dbl>
+# 1 CGL_bic       0.926 1.50
+# 2 CGL_cv        1.06  1.40
+# 3 GL_bic        0.233 1.63
+# 4 GL_cv         0.264 1.49
+# 5 PCGL_C_bic   39.1   0.621
+# 6 PCGL_C_cv    46.1   1.57
+# 7 PCGL_I_bic   44.3   0.562
+# 8 PCGL_I_cv    46.9   1.48
+# 9 PCGLcpp_bic   8.77  0.441
+# 10 PCGLcpp_cv   8.31  0.976
+# 11 SPACE_bic    6.19  1.06
+# 12 SPACE_cv     3.86  0.687
