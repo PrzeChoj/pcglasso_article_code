@@ -10,7 +10,9 @@ library(ggplot2)
 
 set.seed(1234)
 
-pcglasso_goal_function <- function(S, lambda, alpha, delta_matrix, theta_diag) {
+pcglasso_goal_function <- function(S, lambda, alpha, Sinv) {
+  delta_matrix <- cov2cor(Sinv)
+  theta_diag <- sqrt(diag(Sinv))
   p <- nrow(delta_matrix)
   res_value <- -determinant(delta_matrix)$modulus - 2 * (1 - alpha) * sum(log(theta_diag)) + sum(diag(S %*% diag(theta_diag) %*% delta_matrix %*% diag(theta_diag))) + lambda * sum(abs(delta_matrix - diag(p)))
   attr(res_value, "logarithm") <- NULL
@@ -18,7 +20,7 @@ pcglasso_goal_function <- function(S, lambda, alpha, delta_matrix, theta_diag) {
   res_value
 }
 
-M <- 5
+M <- 20
 p <- 50
 n <- p*2
 rho <- 0.2
@@ -81,25 +83,17 @@ for (m in 1:M) {
     )
     end_pcglasso_C <- Sys.time()
     time_pcglasso_C_mat[m, i] <- as.numeric(difftime(end_pcglasso_C, start_pcglasso_C, units = "secs"))
-
-    Sinv <- res_pcglasso_C
-    res_val_pcglasso_C_mat[m, i] <- pcglasso_goal_function(
-      S, lambda, alpha, cov2cor(Sinv), sqrt(diag(Sinv))
-    )
+    res_val_pcglasso_C_mat[m, i] <- pcglasso_goal_function(S, lambda, alpha, res_pcglasso_C)
 
     # pcglasso_I
     start_pcglasso_I <- Sys.time()
     res_pcglasso_I <- pcglasso(
-      S, lambda, c_parameter,
+      S, lambda, c_parameter, Theta_start = diag(nrow(S)),
       threshold = tolerance * pcglasso_tolerance_modifier
     )
     end_pcglasso_I <- Sys.time()
     time_pcglasso_I_mat[m, i] <- as.numeric(difftime(end_pcglasso_I, start_pcglasso_I, units = "secs"))
-
-    Sinv <- res_pcglasso_I
-    res_val_pcglasso_I_mat[m, i] <- pcglasso_goal_function(
-      S, lambda, alpha, cov2cor(Sinv), sqrt(diag(Sinv))
-    )
+    res_val_pcglasso_I_mat[m, i] <- pcglasso_goal_function(S, lambda, alpha, res_pcglasso_I)
 
     # pcglassoFast_I
     start_pcglassoFast_I <- Sys.time()
@@ -109,11 +103,7 @@ for (m in 1:M) {
     )
     end_pcglassoFast_I <- Sys.time()
     time_pcglassoFast_I_mat[m, i] <- as.numeric(difftime(end_pcglassoFast_I, start_pcglassoFast_I, units = "secs"))
-
-    Sinv <- res_pcglassoFast_I$Sinv
-    res_val_pcglassoFast_I_mat[m, i] <- pcglasso_goal_function(
-      S, lambda, alpha, cov2cor(Sinv), sqrt(diag(Sinv))
-    )
+    res_val_pcglassoFast_I_mat[m, i] <- pcglasso_goal_function(S, lambda, alpha, res_pcglassoFast_I$Sinv)
 
     # pcglassoFast_C
     start_pcglassoFast_C <- Sys.time()
@@ -124,11 +114,7 @@ for (m in 1:M) {
     )
     end_pcglassoFast_C <- Sys.time()
     time_pcglassoFast_C_mat[m, i] <- as.numeric(difftime(end_pcglassoFast_C, start_pcglassoFast_C, units = "secs"))
-
-    Sinv <- res_pcglassoFast_C$Sinv
-    res_val_pcglassoFast_C_mat[m, i] <- pcglasso_goal_function(
-      S, lambda, alpha, cov2cor(Sinv), sqrt(diag(Sinv))
-    )
+    res_val_pcglassoFast_C_mat[m, i] <- pcglasso_goal_function(S, lambda, alpha, res_pcglassoFast_C$Sinv)
 
     # pcglasso_cpp_I
     start_pcglasso_cpp_I <- Sys.time()
@@ -138,11 +124,7 @@ for (m in 1:M) {
     )
     end_pcglasso_cpp_I <- Sys.time()
     time_pcglasso_cpp_I_mat[m, i] <- as.numeric(difftime(end_pcglasso_cpp_I, start_pcglasso_cpp_I, units = "secs"))
-
-    Sinv <- res_pcglasso_cpp_I$Sinv
-    res_val_pcglasso_cpp_I_mat[m, i] <- pcglasso_goal_function(
-      S, lambda, alpha, cov2cor(Sinv), sqrt(diag(Sinv))
-    )
+    res_val_pcglasso_cpp_I_mat[m, i] <- pcglasso_goal_function(S, lambda, alpha, res_pcglasso_cpp_I$Sinv)
 
     # pcglasso_cpp_C
     start_pcglasso_cpp_C <- Sys.time()
@@ -153,15 +135,11 @@ for (m in 1:M) {
     )
     end_pcglasso_cpp_C <- Sys.time()
     time_pcglasso_cpp_C_mat[m, i] <- as.numeric(difftime(end_pcglasso_cpp_C, start_pcglasso_cpp_C, units = "secs"))
-
-    Sinv <- res_pcglasso_cpp_C$Sinv
-    res_val_pcglasso_cpp_C_mat[m, i] <- pcglasso_goal_function(
-      S, lambda, alpha, cov2cor(Sinv), sqrt(diag(Sinv))
-    )
+    res_val_pcglasso_cpp_C_mat[m, i] <- pcglasso_goal_function(S, lambda, alpha, res_pcglasso_cpp_C$Sinv)
   }
 }
 # trim is from each side
-trim <- if (m >= 10) { 0.1 } else { 0 }
+trim <- if (M >= 10) { 0.1 } else { 0 }
 time_pcglasso_C        <- apply(time_pcglasso_C_mat,        2, mean, trim = trim)
 res_val_pcglasso_C     <- apply(res_val_pcglasso_C_mat,     2, mean, trim = trim)
 time_pcglasso_I        <- apply(time_pcglasso_I_mat,        2, mean, trim = trim)
@@ -204,11 +182,10 @@ ggplot(df, aes(x = time, y = value, color = alg, shape = init)) +
   theme_minimal(base_size = 14) +
   scale_y_log10() +
   #scale_x_log10() +
-  #expand_limits(x = 0) +
+  expand_limits(x = 0) +
   labs(
     title = "PCGLASSO vs PCGLASSOFast vs PCGLASSOcpp",
     subtitle = paste0(
       "p = ", p, ", n = ", n, ", corr = -", cor_modifier, "/sqrt(p)"
     )
   )
-``
