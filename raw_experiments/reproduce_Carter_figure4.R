@@ -18,15 +18,15 @@ pcglasso_goal_function <- function(S, lambda, alpha, delta_matrix, theta_diag) {
   res_value
 }
 
-M <- 20
+M <- 5
 p <- 50
 n <- p*2
 rho <- 0.2
 lambda <- rho
 c_parameter <- 1
 alpha <- 1 - c_parameter
-tolerance_list <- exp(seq(log(0.01), log(0.00001), length.out = 20))
-pcglasso_tolerance_modifier <- 10
+tolerance_list <- exp(seq(log(0.01), log(0.00001), length.out = 12))
+pcglasso_tolerance_modifier <- 100
 
 cor_modifier <- 1
 S_star <- diag(1, p); S_star[1,2:p] <- S_star[2:p,1] <- -cor_modifier/sqrt(p); S_star[1,1] <- 1
@@ -191,13 +191,16 @@ df <- data.frame(
     rep("pcglasso_cpp start C", length(time_pcglasso_cpp_C))
   ))
 )
+df$alg  <- sub(" (start C|start I)$", "", df$which)
+df$init <- ifelse(grepl("start C", df$which), "C", "I")
 
-eps <- 1e-7 # chosen for the plot to be prettier
+eps <- 1e-5 # chosen for the plot to be prettier
 df$value <- df$value - min(df$value) + eps
 
 options(scipen = 2)
-ggplot(df, aes(x = time, y = value, color = which)) +
-  geom_point() +
+ggplot(df, aes(x = time, y = value, color = alg, shape = init)) +
+  geom_point(size = 5) +
+  scale_shape_manual(values = c("C" = 20, "I" = 8)) +
   theme_minimal(base_size = 14) +
   scale_y_log10() +
   #scale_x_log10() +
@@ -208,3 +211,4 @@ ggplot(df, aes(x = time, y = value, color = which)) +
       "p = ", p, ", n = ", n, ", corr = -", cor_modifier, "/sqrt(p)"
     )
   )
+``
