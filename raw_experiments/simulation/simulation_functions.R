@@ -29,12 +29,13 @@ run_single <- function(Q, n, split_train = 0.7,
   # Default: PC-GLasso, Glasso, CorGL, SPACE
   if (is.null(estimators)) {
     estimators <- list(
-      PCGL_C  = estimator_pcglasso_start_I,
-      PCGL_I  = estimator_pcglasso_start_C,
-      PCGLcpp = estimator_pcglasso_cpp,
-      GL      = estimator_glasso,
-      CGL     = estimator_corglasso,
-      SPACE   = estimator_space
+      PCGL_C    = estimator_pcglasso_start_I,
+      PCGL_I    = estimator_pcglasso_start_C,
+      PCGLcpp_I = estimator_pcglasso_cpp_start_I,
+      PCGLcpp_C = estimator_pcglasso_cpp_start_C,
+      GL        = estimator_glasso,
+      CGL       = estimator_corglasso,
+      SPACE     = estimator_space
     )
   }
 
