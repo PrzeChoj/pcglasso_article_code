@@ -14,13 +14,17 @@ pcglasso_goal_function <- function(S, lambda, alpha, Sinv) {
   delta_matrix <- cov2cor(Sinv)
   theta_diag <- sqrt(diag(Sinv))
   p <- nrow(delta_matrix)
-  res_value <- -determinant(delta_matrix)$modulus - 2 * (1 - alpha) * sum(log(theta_diag)) + sum(diag(S %*% diag(theta_diag) %*% delta_matrix %*% diag(theta_diag))) + lambda * sum(abs(delta_matrix - diag(p)))
-  attr(res_value, "logarithm") <- NULL
 
-  res_value
+  theta_mat <- diag(theta_diag)
+  log_det   <- determinant(delta_matrix)$modulus
+  attr(log_det, "logarithm") <- NULL
+  quad_term <- sum(diag(S %*% theta_mat %*% delta_matrix %*% theta_mat))
+  l1_pen    <- lambda * sum(abs(delta_matrix - diag(p)))
+
+  -log_det - 2 * (1 - alpha) * sum(log(theta_diag)) + quad_term + l1_pen
 }
 
-M <- 20
+M <- 30
 p <- 50
 n <- p*2
 rho <- 0.2
@@ -28,6 +32,7 @@ lambda <- rho
 c_parameter <- 1
 alpha <- 1 - c_parameter
 tolerance_list <- exp(seq(log(0.01), log(0.00001), length.out = 12))
+n_tol <- length(tolerance_list)
 pcglasso_tolerance_modifier <- 100
 
 cor_modifier <- 1
@@ -41,117 +46,120 @@ Z <- mvrnorm(n = n, mu = rep(0, p), Sigma = solve(S_star))
 S <- t(Z) %*% Z / n
 S <- cov2cor(S)
 
+run_with_obj <- function(fun) {
+  start <- Sys.time()
+  Sinv  <- fun()
+  end   <- Sys.time()
+
+  elapsed <- as.numeric(difftime(end, start, units = "secs"))
+  value <- pcglasso_goal_function(S, lambda, alpha, Sinv)
+  list(time = elapsed, value = value)
+}
 
 counter <- 0
-pb <- txtProgressBar(min = counter, max = length(tolerance_list) * M, style = 3)
-time_pcglasso_C           <- numeric(length(tolerance_list))
-res_val_pcglasso_C        <- numeric(length(tolerance_list))
-time_pcglasso_I           <- numeric(length(tolerance_list))
-res_val_pcglasso_I        <- numeric(length(tolerance_list))
-time_pcglassoFast_I       <- numeric(length(tolerance_list))
-res_val_pcglassoFast_I    <- numeric(length(tolerance_list))
-time_pcglassoFast_C       <- numeric(length(tolerance_list))
-res_val_pcglassoFast_C    <- numeric(length(tolerance_list))
-time_pcglasso_cpp_I       <- numeric(length(tolerance_list))
-res_val_pcglasso_cpp_I    <- numeric(length(tolerance_list))
-time_pcglasso_cpp_C       <- numeric(length(tolerance_list))
-res_val_pcglasso_cpp_C    <- numeric(length(tolerance_list))
-time_pcglasso_C_mat        <- matrix(NA, nrow = M, ncol = length(tolerance_list))
-res_val_pcglasso_C_mat     <- matrix(NA, nrow = M, ncol = length(tolerance_list))
-time_pcglasso_I_mat        <- matrix(NA, nrow = M, ncol = length(tolerance_list))
-res_val_pcglasso_I_mat     <- matrix(NA, nrow = M, ncol = length(tolerance_list))
-time_pcglassoFast_I_mat    <- matrix(NA, nrow = M, ncol = length(tolerance_list))
-res_val_pcglassoFast_I_mat <- matrix(NA, nrow = M, ncol = length(tolerance_list))
-time_pcglassoFast_C_mat    <- matrix(NA, nrow = M, ncol = length(tolerance_list))
-res_val_pcglassoFast_C_mat <- matrix(NA, nrow = M, ncol = length(tolerance_list))
-time_pcglasso_cpp_I_mat    <- matrix(NA, nrow = M, ncol = length(tolerance_list))
-res_val_pcglasso_cpp_I_mat <- matrix(NA, nrow = M, ncol = length(tolerance_list))
-time_pcglasso_cpp_C_mat    <- matrix(NA, nrow = M, ncol = length(tolerance_list))
-res_val_pcglasso_cpp_C_mat <- matrix(NA, nrow = M, ncol = length(tolerance_list))
-for (m in 1:M) {
-  for (i in 1:length(tolerance_list)) {
+pb <- txtProgressBar(min = counter, max = n_tol * M, style = 3)
+time_pcglasso_C_mat        <- matrix(NA, nrow = M, ncol = n_tol)
+res_val_pcglasso_C_mat     <- matrix(NA, nrow = M, ncol = n_tol)
+time_pcglasso_I_mat        <- matrix(NA, nrow = M, ncol = n_tol)
+res_val_pcglasso_I_mat     <- matrix(NA, nrow = M, ncol = n_tol)
+time_pcglassoFast_I_mat    <- matrix(NA, nrow = M, ncol = n_tol)
+res_val_pcglassoFast_I_mat <- matrix(NA, nrow = M, ncol = n_tol)
+time_pcglassoFast_C_mat    <- matrix(NA, nrow = M, ncol = n_tol)
+res_val_pcglassoFast_C_mat <- matrix(NA, nrow = M, ncol = n_tol)
+time_pcglasso_cpp_I_mat    <- matrix(NA, nrow = M, ncol = n_tol)
+res_val_pcglasso_cpp_I_mat <- matrix(NA, nrow = M, ncol = n_tol)
+time_pcglasso_cpp_C_mat    <- matrix(NA, nrow = M, ncol = n_tol)
+res_val_pcglasso_cpp_C_mat <- matrix(NA, nrow = M, ncol = n_tol)
+for (m in seq_len(M)) {
+  for (i in seq_along(tolerance_list)) {
     tolerance <- tolerance_list[i]
+    tol_pcglasso <- tolerance * pcglasso_tolerance_modifier
 
     counter <- counter + 1
     setTxtProgressBar(pb, counter)
 
     # pcglasso_C
-    start_pcglasso_C <- Sys.time()
-    res_pcglasso_C <- pcglasso(
-      S, lambda, c_parameter,
-      threshold = tolerance * pcglasso_tolerance_modifier
-    )
-    end_pcglasso_C <- Sys.time()
-    time_pcglasso_C_mat[m, i] <- as.numeric(difftime(end_pcglasso_C, start_pcglasso_C, units = "secs"))
-    res_val_pcglasso_C_mat[m, i] <- pcglasso_goal_function(S, lambda, alpha, res_pcglasso_C)
+    res <- run_with_obj(function() {
+      pcglasso(
+        S, lambda, c_parameter,
+        threshold = tol_pcglasso
+      )
+    })
+    time_pcglasso_C_mat[m, i]    <- res$time
+    res_val_pcglasso_C_mat[m, i] <- res$value
 
     # pcglasso_I
-    start_pcglasso_I <- Sys.time()
-    res_pcglasso_I <- pcglasso(
-      S, lambda, c_parameter, Theta_start = diag(nrow(S)),
-      threshold = tolerance * pcglasso_tolerance_modifier
-    )
-    end_pcglasso_I <- Sys.time()
-    time_pcglasso_I_mat[m, i] <- as.numeric(difftime(end_pcglasso_I, start_pcglasso_I, units = "secs"))
-    res_val_pcglasso_I_mat[m, i] <- pcglasso_goal_function(S, lambda, alpha, res_pcglasso_I)
+    res <- run_with_obj(function() {
+      pcglasso(
+        S, lambda, c_parameter,
+        Theta_start = diag(nrow(S)),
+        threshold   = tol_pcglasso
+      )
+    })
+    time_pcglasso_I_mat[m, i]    <- res$time
+    res_val_pcglasso_I_mat[m, i] <- res$value
 
     # pcglassoFast_I
-    start_pcglassoFast_I <- Sys.time()
-    res_pcglassoFast_I <- pcglassoFast(
-      S, lambda = lambda, alpha = alpha,
-      tolerance = tolerance
-    )
-    end_pcglassoFast_I <- Sys.time()
-    time_pcglassoFast_I_mat[m, i] <- as.numeric(difftime(end_pcglassoFast_I, start_pcglassoFast_I, units = "secs"))
-    res_val_pcglassoFast_I_mat[m, i] <- pcglasso_goal_function(S, lambda, alpha, res_pcglassoFast_I$Sinv)
+    res <- run_with_obj(function() {
+      pcglassoFast(
+        S, lambda = lambda, alpha = alpha,
+        tolerance = tolerance
+      )$Sinv
+    })
+    time_pcglassoFast_I_mat[m, i]    <- res$time
+    res_val_pcglassoFast_I_mat[m, i] <- res$value
 
     # pcglassoFast_C
-    start_pcglassoFast_C <- Sys.time()
-    res_pcglassoFast_C <- pcglassoFast(
-      S, lambda = lambda, alpha = alpha,
-      R = cov2cor(solve(S)),
-      tolerance = tolerance
-    )
-    end_pcglassoFast_C <- Sys.time()
-    time_pcglassoFast_C_mat[m, i] <- as.numeric(difftime(end_pcglassoFast_C, start_pcglassoFast_C, units = "secs"))
-    res_val_pcglassoFast_C_mat[m, i] <- pcglasso_goal_function(S, lambda, alpha, res_pcglassoFast_C$Sinv)
+    res <- run_with_obj(function() {
+      pcglassoFast(
+        S, lambda = lambda, alpha = alpha,
+        R = cov2cor(solve(S)),
+        tolerance = tolerance
+      )$Sinv
+    })
+    time_pcglassoFast_C_mat[m, i]    <- res$time
+    res_val_pcglassoFast_C_mat[m, i] <- res$value
 
     # pcglasso_cpp_I
-    start_pcglasso_cpp_I <- Sys.time()
-    res_pcglasso_cpp_I <- blockwise_optimization(
-      S, lambda, alpha,
-      tolerance = tolerance
-    )
-    end_pcglasso_cpp_I <- Sys.time()
-    time_pcglasso_cpp_I_mat[m, i] <- as.numeric(difftime(end_pcglasso_cpp_I, start_pcglasso_cpp_I, units = "secs"))
-    res_val_pcglasso_cpp_I_mat[m, i] <- pcglasso_goal_function(S, lambda, alpha, res_pcglasso_cpp_I$Sinv)
+    res <- run_with_obj(function() {
+      blockwise_optimization(
+        S, lambda, alpha,
+        tolerance = tolerance
+      )$Sinv
+    })
+    time_pcglasso_cpp_I_mat[m, i]    <- res$time
+    res_val_pcglasso_cpp_I_mat[m, i] <- res$value
 
     # pcglasso_cpp_C
-    start_pcglasso_cpp_C <- Sys.time()
-    Q0 <- cov2cor(solve(S))
-    res_pcglasso_cpp_C <- blockwise_optimization(
-      S, lambda, alpha, Q = Q0, Q_inv = solve(Q0),
-      tolerance = tolerance
-    )
-    end_pcglasso_cpp_C <- Sys.time()
-    time_pcglasso_cpp_C_mat[m, i] <- as.numeric(difftime(end_pcglasso_cpp_C, start_pcglasso_cpp_C, units = "secs"))
-    res_val_pcglasso_cpp_C_mat[m, i] <- pcglasso_goal_function(S, lambda, alpha, res_pcglasso_cpp_C$Sinv)
+    res <- run_with_obj(function() {
+      Q0 <- cov2cor(solve(S))
+      blockwise_optimization(
+        S, lambda, alpha,
+        Q = Q0, Q_inv = solve(Q0),
+        tolerance = tolerance
+      )$Sinv
+    })
+    time_pcglasso_cpp_C_mat[m, i]    <- res$time
+    res_val_pcglasso_cpp_C_mat[m, i] <- res$value
   }
 }
-# trim is from each side
-trim <- if (M >= 10) { 0.1 } else { 0 }
-time_pcglasso_C        <- apply(time_pcglasso_C_mat,        2, mean, trim = trim)
-res_val_pcglasso_C     <- apply(res_val_pcglasso_C_mat,     2, mean, trim = trim)
-time_pcglasso_I        <- apply(time_pcglasso_I_mat,        2, mean, trim = trim)
-res_val_pcglasso_I     <- apply(res_val_pcglasso_I_mat,     2, mean, trim = trim)
-time_pcglassoFast_I    <- apply(time_pcglassoFast_I_mat,    2, mean, trim = trim)
-res_val_pcglassoFast_I <- apply(res_val_pcglassoFast_I_mat, 2, mean, trim = trim)
-time_pcglassoFast_C    <- apply(time_pcglassoFast_C_mat,    2, mean, trim = trim)
-res_val_pcglassoFast_C <- apply(res_val_pcglassoFast_C_mat, 2, mean, trim = trim)
-time_pcglasso_cpp_I    <- apply(time_pcglasso_cpp_I_mat,    2, mean, trim = trim)
-res_val_pcglasso_cpp_I <- apply(res_val_pcglasso_cpp_I_mat, 2, mean, trim = trim)
-time_pcglasso_cpp_C    <- apply(time_pcglasso_cpp_C_mat,    2, mean, trim = trim)
-res_val_pcglasso_cpp_C <- apply(res_val_pcglasso_cpp_C_mat, 2, mean, trim = trim)
+close(pb)
+trim <- if (M >= 10) { 0.1 } else { 0 } # trim is from each side
+
+mean_trim <- function(mat) { apply(mat, 2, mean, trim = trim) }
+
+time_pcglasso_C        <- mean_trim(time_pcglasso_C_mat)
+res_val_pcglasso_C     <- mean_trim(res_val_pcglasso_C_mat)
+time_pcglasso_I        <- mean_trim(time_pcglasso_I_mat)
+res_val_pcglasso_I     <- mean_trim(res_val_pcglasso_I_mat)
+time_pcglassoFast_I    <- mean_trim(time_pcglassoFast_I_mat)
+res_val_pcglassoFast_I <- mean_trim(res_val_pcglassoFast_I_mat)
+time_pcglassoFast_C    <- mean_trim(time_pcglassoFast_C_mat)
+res_val_pcglassoFast_C <- mean_trim(res_val_pcglassoFast_C_mat)
+time_pcglasso_cpp_I    <- mean_trim(time_pcglasso_cpp_I_mat)
+res_val_pcglasso_cpp_I <- mean_trim(res_val_pcglasso_cpp_I_mat)
+time_pcglasso_cpp_C    <- mean_trim(time_pcglasso_cpp_C_mat)
+res_val_pcglasso_cpp_C <- mean_trim(res_val_pcglasso_cpp_C_mat)
 
 df <- data.frame(
   time  = c(time_pcglasso_C, time_pcglasso_I,
@@ -161,12 +169,12 @@ df <- data.frame(
             res_val_pcglassoFast_I, res_val_pcglassoFast_C,
             res_val_pcglasso_cpp_I, res_val_pcglasso_cpp_C),
   which = factor(c(
-    rep("pcglasso start C", length(time_pcglasso_C)),
-    rep("pcglasso start I", length(time_pcglasso_I)),
-    rep("pcglassoFast start I", length(time_pcglassoFast_I)),
-    rep("pcglassoFast start C", length(time_pcglassoFast_C)),
-    rep("pcglasso_cpp start I", length(time_pcglasso_cpp_I)),
-    rep("pcglasso_cpp start C", length(time_pcglasso_cpp_C))
+    rep("pcglasso start C", n_tol),
+    rep("pcglasso start I", n_tol),
+    rep("pcglassoFast start I", n_tol),
+    rep("pcglassoFast start C", n_tol),
+    rep("pcglasso_cpp start I", n_tol),
+    rep("pcglasso_cpp start C", n_tol)
   ))
 )
 df$alg  <- sub(" (start C|start I)$", "", df$which)
