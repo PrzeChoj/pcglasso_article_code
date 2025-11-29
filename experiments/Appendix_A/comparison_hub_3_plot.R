@@ -1,9 +1,37 @@
 library(ggplot2)
 library(stringr)
 
+source("./experiments/Appendix_A/comparison_hub_1_utils.R")
+
 data_dir <- "./experiments/Appendix_A/res_data"
 plot_dir <- "./experiments/Appendix_A/plots"
 dir.create(plot_dir, showWarnings = FALSE, recursive = TRUE)
+
+best_method_table <- data.frame(
+  p            = rep(c(50, 70), each = 8),
+  cor_modifier = rep(rep(c(1.0, 0.9), each = 4), times = 2),
+  lambda       = rep(rep(c(0.1, 0.2), each = 2), times = 4),
+  alpha        = rep(c(0.0, 0.5), times = 8),
+  best_method  = c(
+    "pcglasso_C",
+    "pcglasso_cpp_C",
+    "pcglasso_cpp_I",
+    "pcglassoFast_I",
+    "pcglasso_cpp_I",
+    "pcglassoFast_C",
+    "pcglassoFast_I",
+    "pcglasso_I",
+    "pcglasso_C",
+    "pcglassoFast_C",
+    "pcglassoFast_C",
+    "pcglassoFast_C",
+    "pcglassoFast_I",
+    "pcglassoFast_C",
+    "pcglassoFast_I",
+    "pcglasso_I"
+  ),
+  stringsAsFactors = FALSE
+)
 
 files <- list.files(
   data_dir,
@@ -35,7 +63,6 @@ parse_filename <- function(path) {
 }
 
 for (file in files) {
-
   info <- parse_filename(file)
   df   <- readRDS(file)
 
@@ -45,9 +72,31 @@ for (file in files) {
   df$lambda       <- info$lambda
   df$alpha        <- info$alpha
 
-  # shift objective
-  eps <- 1e-7
-  df$value_shifted <- df$value - min(df$value) + eps
+  row_best <- subset(
+    best_method_table,
+    p            == info$p &
+      cor_modifier == info$cor_modifier &
+      lambda       == info$lambda &
+      alpha        == info$alpha
+  )
+  if (nrow(row_best) != 1L) {
+    stop("best_method not found or not unique for: p=",
+         info$p, " cor=", info$cor_modifier,
+         " lambda=", info$lambda, " alpha=", info$alpha)
+  }
+  best_method <- row_best$best_method[1]
+  best_value <- compute_best_value(
+    p            = info$p,
+    cor_modifier = info$cor_modifier,
+    lambda       = info$lambda,
+    alpha        = info$alpha,
+    best_method  = best_method,
+    tolerance_best = 1e-12,
+    seed         = 1234
+  )
+
+  df$value_shifted <- df$value - best_value
+  stopifnot(all(df$value_shifted > 0)) # when error, make tolerance_best smaller
 
   # ---------------- plotting ----------------
   plt <- ggplot(df, aes(x = time, y = value_shifted,
@@ -64,7 +113,7 @@ for (file in files) {
         info$p, info$cor_modifier, info$lambda, info$alpha
       ),
       x = "Time [s]",
-      y = "Objective (shifted, log-scale)"
+      y = "Objective difference to best (log-scale)"
     )
 
   # -------- save plot --------

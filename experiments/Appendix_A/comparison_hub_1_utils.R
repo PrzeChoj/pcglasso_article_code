@@ -188,3 +188,64 @@ simulate_pcglasso <- function(
 
   df
 }
+
+compute_best_value <- function(
+    p,
+    cor_modifier,
+    lambda,
+    alpha,
+    best_method,
+    tolerance_best,
+    pcglasso_tolerance_modifier = 100,
+    seed = 1234) {
+  set.seed(seed)
+  n <- 2 * p
+
+  S_star <- diag(1, p)
+  S_star[1, 2:p] <- S_star[2:p, 1] <- -cor_modifier / sqrt(p)
+  S_star[1, 1]   <- 1
+
+  Z <- mvrnorm(n = n, mu = rep(0, p), Sigma = solve(S_star))
+  S <- t(Z) %*% Z / n
+  S <- cov2cor(S)
+
+  tol_pcglasso <- tolerance_best * pcglasso_tolerance_modifier
+  c_parameter <- 1 - alpha
+
+  Sinv <- switch(
+    best_method,
+    pcglasso_C = pcglasso(
+      S, lambda, c_parameter,
+      threshold = tol_pcglasso
+    ),
+    pcglasso_I = pcglasso(
+      S, lambda, c_parameter,
+      Theta_start = diag(p),
+      threshold   = tol_pcglasso
+    ),
+    pcglassoFast_I = pcglassoFast(
+      S, lambda = lambda, alpha = alpha,
+      tolerance = tolerance_best
+    )$Sinv,
+    pcglassoFast_C = pcglassoFast(
+      S, lambda = lambda, alpha = alpha,
+      R = cov2cor(solve(S)),
+      tolerance = tolerance_best
+    )$Sinv,
+    pcglasso_cpp_I = blockwise_optimization(
+      S, lambda, alpha,
+      tolerance = tolerance_best
+    )$Sinv,
+    pcglasso_cpp_C = {
+      Q0 <- cov2cor(solve(S))
+      blockwise_optimization(
+        S, lambda, alpha,
+        Q = Q0, Q_inv = solve(Q0),
+        tolerance = tolerance_best
+      )$Sinv
+    },
+    stop("Unknown best_method: ", best_method)
+  )
+
+  pcglasso_goal_function(S, lambda, alpha, Sinv)
+}
