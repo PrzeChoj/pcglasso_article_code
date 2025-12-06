@@ -162,14 +162,18 @@ estimator_hubcorglasso <- function(
   )
 }
 
-estimator_pcglasso <- function(S_full,
-                               n,
-                               lambdas,
-                               alpha_grid = 0,
-                               gamma = 0,
-                               max_edge_fraction = 0.3,
-                               R_start = NULL,
-                               verbose = 0) {
+estimator_pcglassoFast <- function(
+    S_full,
+    n,
+    lambdas,
+    solver_R = c("fortran", "cpp"),
+    alpha_grid = 0,
+    gamma = 0,
+    max_edge_fraction = 0.3,
+    R_start = NULL,
+    verbose = 0) {
+  solver_R <- match.arg(solver_R)
+
   t_full <- system.time({
     pc_path_list  <- list()
     pc_loss_list  <- list()
@@ -185,6 +189,7 @@ estimator_pcglasso <- function(S_full,
         alpha = a,
         max_edge_fraction = max_edge_fraction,
         lambdas = lambdas,
+        solver_R = solver_R,
         R0 = R_start,
         verbose = verbose
       )
@@ -222,70 +227,46 @@ estimator_pcglasso <- function(S_full,
   )
 }
 
-# devtools::install_github("PrzeChoj/PCGLASSOcpp")
-estimator_pcglasso_cpp <- function(S_full,
-                                   n,
-                                   lambdas,
-                                   alpha_grid = 0,
-                                   gamma = 0,
-                                   R_start = NULL,
-                                   verbose = 0) {
-  t_full <- system.time({
-    pc_path_list  <- list()
-    pc_loss_list  <- list()
-    pc_path_list_all <- list()
-    if(is.null(R_start))
-    {
-      R_start <- cov2cor(MASS::ginv(S_full))
-    }
+estimator_pcglasso <- function(S_full,
+                               n,
+                               lambdas,
+                               alpha_grid = 0,
+                               gamma = 0,
+                               max_edge_fraction = 0.3,
+                               R_start = NULL,
+                               verbose = 0) {
+  estimator_pcglassoFast(
+    S_full,
+    n,
+    lambdas,
+    "fortran",
+    alpha_grid,
+    gamma,
+    max_edge_fraction,
+    R_start,
+    verbose
+  )
+}
 
-    for (a in alpha_grid) {
-      path_cpp <- PCGLASSOcpp::lambda_grid(
-        S_full, alpha = a, lambdas = lambdas, Q_inv_init = solve(R_start), Q_init = R_start
-      )
-      K <- length(path_cpp$lambdas)
-      path <- list(
-        path_optimization_time = NA,
-        iters = sapply(1:K, function(k){path_cpp$solutions[[k]]$n_iters}),
-        objective = sapply(1:K, function(k){path_cpp$solutions[[k]]$loss[length(path_cpp$solutions[[k]]$loss)]}),
-        W_path = lapply(1:K, function(k){diag(path_cpp$solutions[[k]]$D) %*% path_cpp$solutions[[k]]$Q %*% diag(path_cpp$solutions[[k]]$D)}),
-        Wi_path = lapply(1:K, function(k){diag(1/path_cpp$solutions[[k]]$D) %*% path_cpp$solutions[[k]]$Q_inv %*% diag(1/path_cpp$solutions[[k]]$D)}),
-        D_path = lapply(1:K, function(k){path_cpp$solutions[[k]]$D}),
-        Ri_path = lapply(1:K, function(k){path_cpp$solutions[[k]]$Q_inv}),
-        R_path = lapply(1:K, function(k){path_cpp$solutions[[k]]$Q}),
-        lambdas = path_cpp$lambdas
-      )
-
-      p <- nrow(path$W_path[[1]])
-      K <- length(path$W_path)
-
-      # Preallocate 3D array
-      W <- array(0, dim = c(p, p, K))
-
-      # Fill the array
-      for (k in seq_len(K)) {
-        W[,,k] <- path$W_path[[k]]
-      }
-      pc_path_list_all[[as.character(a)]]  <- path
-      pc_path_list[[as.character(a)]] <- W
-      pc_loss_list[[as.character(a)]] <- evaluate_objective_path(path, Sigma = S_full, n = n, gamma = gamma)
-    }
-  })
-  if(length(pc_path_list) ==1)
-  {
-    return(list(
-      path       = W,
-      path.all   = pc_path_list_all[[1]],
-      path.loss  = pc_loss_list[[1]],
-      timing     = as.numeric(t_full["elapsed"])
-    ))
-  }
-  list(
-    path       = pc_path_list,
-    path.all   = pc_path_list_all,
-    path.loss  = pc_loss_list,
-    alpha_grid = alpha_grid,
-    timing     = as.numeric(t_full["elapsed"])
+estimator_pcglasso_cpp <- function(
+    S_full,
+    n,
+    lambdas,
+    alpha_grid = 0,
+    gamma = 0,
+    max_edge_fraction = 0.3,
+    R_start = NULL,
+    verbose = 0) {
+  estimator_pcglassoFast(
+    S_full,
+    n,
+    lambdas,
+    "cpp",
+    alpha_grid,
+    gamma,
+    max_edge_fraction,
+    R_start,
+    verbose
   )
 }
 
