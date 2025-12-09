@@ -13,6 +13,8 @@
 
 suppressPackageStartupMessages({
   library(space)
+  library(PCGLASSOcpp)
+  library(PCGLASSO)
   library(pcglassoFast)
   source("simulation_functions.R")  # make sure this is in the same folder or adjust the path
   library(glasso)
@@ -40,7 +42,7 @@ graphics.off()
 
 split.train        <- 0.7      # not used directly below, but could be referenced in your functions
 ns                 <- 200#c(200,300,500,1000,5000)
-sim                <- 200
+sim                <- 2
 nlambda            <- 50
 mc_cores           <- parallel::detectCores()-4
 #mc_cores <- 1L

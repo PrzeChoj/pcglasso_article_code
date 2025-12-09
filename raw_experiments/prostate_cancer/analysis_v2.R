@@ -1,6 +1,7 @@
 #source("raw_experiments/estimation_function.R")
 library(PCGLASSO)
 library(ggplot2)
+library(ggrepel)
 source("../hub_methods/013_Method_IPCHD.R")
 source("../hub_methods/012_Method_VariableScreening.R")
 source("../hub_methods/011_Method_MatrixThresholding.R")
@@ -8,7 +9,7 @@ source("../estimation_function.R")
 
 gamma <- 0.5
 #df_reduced <- read.csv("./raw_experiments/prostate_cancer/312_df_reduced.csv")
-df_reduced <- read.csv("312_df_reduced.csv")
+df_reduced <- read.csv("332_df_residuals.csv")
 n.lambda <- 20
 df_reduced <- df_reduced[, -1]
 df_genes <- df_reduced[, 7 + 1:200]
@@ -18,6 +19,8 @@ Corr.est <- cov2cor(Sigma.est)
 n <- dim(df_genes)[1]
 Prec.est <- solve(Sigma.est)
 PC.est <- cov2cor(Prec.est)
+
+alpha_2 <- apply(Prec.est,2, function(x){sum(abs(x)^2)-1})
 ##
 # begin by looking at the raw data.
 ##
@@ -122,20 +125,13 @@ fig <- ((p_glasso | p_corglasso) /
 print(fig)
 ggsave(
   "matrices_optimal_cancer.png",
-  plot = fig, width = 7, height = 4
+  plot = fig, width = 8, height = 8
 )
 
-alphas <- list(
-  "GLasso"     = Optim.glasso$alpha,
-  "Cor-GLasso" = Optim.cglasso$alpha,
-  "PC-GLasso"   = Optim.pcglasso$alpha,
-  "Threshold"      = alpha
+ggsave(
+  "adj_matrix_pcglasso.png",
+  plot = p_pcglasso, width = 4, height = 4
 )
-fig_alpha <- make_alpha_grid(alphas, ncol = 2, common_y = FALSE)
-print(fig_alpha)
-ggsave("alphas_grid_caner.png", plot = fig_alpha, width = 7, height = 4, dpi = 300)
-
-
 
 
 df_glasso <- data.frame(
@@ -176,7 +172,7 @@ colors_named <- c(
 fig <- ggplot(df_all, aes(x = Edges, y = BIC, color = Method)) +
   geom_line(linewidth = 1.1) +
   scale_color_manual(values = colors_named) +
-  labs(x = "#Edges", y = "BIC") +
+  labs(x = "#Edges", y = "EBIC(0.5)") +
   theme_minimal(base_size = 14) +
   theme(
     legend.position = "right",
@@ -184,14 +180,109 @@ fig <- ggplot(df_all, aes(x = Edges, y = BIC, color = Method)) +
     legend.text = element_text(size = 8),
     legend.box = "horizontal"
   ) +
-  coord_cartesian( xlim = c(0, 4000))
+  coord_cartesian( xlim = c(1000, 4000))
 
 print(fig)
 ggsave(
   "BIC_fig_cancer.png",
-  plot = fig, width = 7, height = 4
+  plot = fig, width = 4, height = 3
 )
 plot(sort(diag(Optim.pcglasso$Theta_opt), decreasing = T),ylab='Diagonal values',xlab='')
 cat('HUBS identified by Hub method: SCARNA7, MIR3609, SEMG1, SEMG2, RN7SK \n')
 cat('largest diagonal = ',gene.names[order(diag(Optim.pcglasso$Theta_opt),decreasing = T)[1:5]],'\n')
 
+alpha2_precision <-apply(Optim.pcglasso$Theta_opt,2,function(x) sum(x^2))
+cat('alpha 2 = ',gene.names[order(alpha2_precision,decreasing = T)[1:5]],'\n')
+fig <- make_alpha_plot(alpha2_precision, "$\\textbf{Sorted}\\;\\alpha^2(\\hat{K})$",
+                       latex = TRUE, names= gene.names, print.number.names=5)
+ggsave("alpha2_pcglasso_cancer.png",fig, width = 4, height = 3)
+
+alpha1_precision <-apply(cov2cor(Optim.pcglasso$Theta_opt),2,function(x) sum(abs(x)))
+fig <- make_alpha_plot(alpha1_precision, "$\\textbf{Sorted}\\;\\alpha^1(\\hat{R})$",
+                       latex = TRUE, names= gene.names, print.number.names=3)
+ggsave("alpha1_pcglasso_cancer.png",fig, width = 4, height = 3)
+
+
+Sigma.est <- solve(Optim.pcglasso$Theta_opt)
+Sigma.est_1 <- Sigma.est[-12,][,-12]
+Theta_opt_1 <- solve(Sigma.est_1)
+alpha2_precision <-apply(Theta_opt_1,2,function(x) sum(x^2))
+p <- dim(Optim.pcglasso$Theta_opt)[1]
+
+# values + ordering
+d     <- sqrt(diag(Optim.pcglasso$Theta_opt))
+ord   <- order(d, decreasing = FALSE)
+vals  <- d[ord]
+labs  <- gene.names[ord]   # assumes same order/length as diag
+
+idx      <- seq_len(p)
+k        <- min(5, p)
+top_idx  <- idx[1:k]
+rest_idx <- if (p > k) idx[-(1:k)] else integer(0)
+
+# empty plot, then draw rest as points, top-k as text labels
+fig <- make_alpha_plot(d, "$\\textbf{Sorted}\\;\\D(\\hat{K})$",
+                       latex = TRUE, names= gene.names, print.number.names=5,
+                       ylab=expression(D))
+ggsave("d_pcglasso_cancer.png",fig, width = 4, height = 3)
+
+
+library(ggplot2)
+library(ggrepel)
+
+K <- 5
+top_diag_idx   <- order(diag(Optim.pcglasso$Theta_opt), decreasing = TRUE)[1:K]
+top_diag_genes <- gene.names[top_diag_idx]
+
+rows <- top_diag_idx
+cols <- seq_len(ncol(Prec.est))
+
+# Long data for selected rows
+df <- do.call(rbind, lapply(rows, function(i) {
+  data.frame(
+    row_idx  = i,
+    row_gene = gene.names[i],
+    col_idx  = cols,
+    col_gene = gene.names[cols],
+    value    = as.numeric(Prec.est[i, ])
+  )
+}))
+
+# drop the diagonal
+df <- subset(df, row_idx != col_idx)
+
+# per-row normalization to [-1, 1]
+df$max_abs <- ave(abs(df$value), df$row_idx, FUN = max, na.rm = TRUE)
+df$norm    <- ifelse(df$max_abs > 0, df$value / df$max_abs, 0)
+
+# label only top-diag columns with |norm| >= 0.2
+df$label <- ifelse(df$col_idx %in% top_diag_idx & abs(df$norm) >= 0.2, df$col_gene, "")
+
+# facet titles carry the row gene name
+df$panel <- paste0("Row: ", df$row_gene)
+
+# x positions (matrix order per panel). If you prefer by magnitude, reorder here.
+df$pos <- ave(df$col_idx, df$panel, FUN = seq_along)
+
+g <- ggplot(df, aes(x = pos, y = norm)) +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  geom_point(color = "black", size = 1.7) +
+  geom_text_repel(
+    data = subset(df, label != ""),
+    aes(label = label),
+    min.segment.length = 0, box.padding = 0.2, max.overlaps = Inf, size = 3
+  ) +
+  facet_wrap(~ panel, ncol = 2) +
+  coord_cartesian(ylim = c(-1, 1)) +
+  labs(
+    x = "Columns",
+    y = "Normalized values"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x  = element_blank(),
+    axis.ticks.x = element_blank(),
+    strip.text   = element_text(face = "bold")
+  )
+
+ggsave("D_rows_cancer.png",g, width = 4, height = 3)

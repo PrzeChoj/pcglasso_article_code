@@ -1,9 +1,11 @@
 library(space)
 library(pcglassoFast)
+library(PCGLASSO)
 library(glasso)
 library(parallel)
 library(Matrix)
 library(dplyr)
+library(tidyverse)
 
 source("estimation_methods.R")
 source("simulation_functions.R")
@@ -47,16 +49,16 @@ res0_8 <- run_experiments(
   pcglasso_tolerance = pcglasso_tolerance
 )
 
-res0_1 <- run_experiments(
-  Q = Q,
-  ns          = ns,
-  sim         = sim,
-  mc_cores    = mc_cores,
-  nlambda     = nlambda,
-  lambda.min.ratio = 0.1,
-  alpha_grid  = alpha_grid,
-  pcglasso_tolerance = pcglasso_tolerance
-)
+# res0_1 <- run_experiments(
+#   Q = Q,
+#   ns          = ns,
+#   sim         = sim,
+#   mc_cores    = mc_cores,
+#   nlambda     = nlambda,
+#   lambda.min.ratio = 0.1,
+#   alpha_grid  = alpha_grid,
+#   pcglasso_tolerance = pcglasso_tolerance
+# )
 
 #####
 res0_8_summarized <- res0_8 %>%

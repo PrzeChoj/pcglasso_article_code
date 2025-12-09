@@ -107,6 +107,9 @@ estimator_pcglasso_I_cpp <- function(
   )
 }
 
+
+
+
 ## start C, Fortran
 estimator_pcglasso_C_fortran <- function(
     S_full, S_train, S_test,
@@ -144,6 +147,27 @@ estimator_pcglasso_C_cpp <- function(
     solver_R = "cpp"
   )
 }
+
+
+
+## start I, C++
+estimator_pcglasso_I_cpp <- function(
+    S_full, S_train, S_test,
+    n, n_train, n_test,
+    lambdas, alpha_grid, pcglasso_tolerance, ...
+) {
+  pcglasso_estimator_core(
+    S_full, S_train, S_test,
+    n, n_train, n_test,
+    lambdas, alpha_grid, pcglasso_tolerance,
+    R0_full_fun  = NULL,
+    R0_train_fun = NULL,
+    solver_R = "cpp"
+  )
+}
+
+
+
 
 # ---- Glasso Estimator ----
 estimator_glasso <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas, ...) {
@@ -260,5 +284,82 @@ estimator_space <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas
                       timing = as.numeric(t_cv["elapsed"]),
                       alpha = NA,
                       scale = scale_cv)
+  )
+}
+
+
+
+pcglasso_path_carter <-function(
+  S,
+  lambdas,
+  tolerance,
+  pcglasso_tolerance_modifier = 100,
+  c_parameter = 1
+){
+
+  p <- dim(S)[1]
+  S_diags <- sqrt(diag(S))
+  S <- cov2cor(S)
+
+  S_eigen <- eigen(S, symmetric = TRUE)
+  S_evals <- S_eigen$values
+  S_evecs <- S_eigen$vectors
+  k <- length(which(S_evals < 1e-08))
+  if (identical(k, as.integer(0))){
+    Theta_start <- S_evecs %*% ( (1 / (S_evals)) * t(S_evecs) )
+  } else {
+    Theta_start <- S_evecs %*% ( (1 / (S_evals + 1 - min(S_evals))) * t(S_evecs) )
+  }
+  precision_array <- array(0, dim = c(p, p, length(lambdas)))
+  for(i in 1:length(lambdas)){
+    precision_array[,,i] <- pcglasso(S, lambdas[i],
+                        c = c_parameter,
+                        threshold = pcglasso_tolerance_modifier*tolerance)
+    #Theta_start <-  (S_diags) * cov2cor(precision_array[,,i]) * rep(S_diags, each = p)
+  }
+  return(precision_array)
+}
+
+## start Carter glasso version
+estimator_glasso_carter <-function( S_full, S_train, S_test,
+                                    n, n_train, n_test,
+                                    lambdas, pcglasso_tolerance,
+                                    pcglasso_tolerance_modifier = 100,
+                                    c_parameter = 1,...){
+
+
+  t_bic <- system.time({
+    carter_path <- pcglasso_path_carter(S_full,
+    lambdas,
+    pcglasso_tolerance,
+    pcglasso_tolerance_modifier = pcglasso_tolerance_modifier,
+    c_parameter = c_parameter
+    )
+    loss_cg_full <- evaluate_objective_path(carter_path, Sigma = S_full,
+                                            n = n, gamma = 0.5)
+    idx_cg_bic   <- which.min(loss_cg_full$BIC_gamma)
+    Theta_cg_bic <- carter_path[,,idx_cg_bic]
+    Q_cg_bic     <- (Theta_cg_bic + t(Theta_cg_bic)) / 2
+  })
+  # CV
+  t_cv <- system.time({
+    carter_path <- pcglasso_path_carter(S_train,
+                                        lambdas,
+                                        pcglasso_tolerance,
+                                        pcglasso_tolerance_modifier = pcglasso_tolerance_modifier,
+                                        c_parameter = c_parameter
+    )
+
+    loss_cg_cv   <- evaluate_objective_path(carter_path,
+                                            Sigma = S_test,
+                                            n = n_test,
+                                            gamma = 0.5)
+    idx_cg_cv    <- which.max(loss_cg_cv$loglik)
+    Theta_cg_cv  <- carter_path[,,idx_cg_cv]
+    Q_cg_cv      <- (Theta_cg_cv + t(Theta_cg_cv)) / 2
+  })
+  list(
+    PCGL_bic = list(Q = Q_cg_bic, timing = as.numeric(t_bic["elapsed"]), alpha = NA),
+    PCGL_cv  = list(Q = Q_cg_cv,  timing = as.numeric(t_cv["elapsed"]),  alpha = NA)
   )
 }

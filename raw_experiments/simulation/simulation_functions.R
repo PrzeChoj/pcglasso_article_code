@@ -35,7 +35,8 @@ run_single <- function(Q, n, split_train = 0.7,
       PCGLcpp_C = estimator_pcglasso_C_cpp,
       GL        = estimator_glasso,
       CGL       = estimator_corglasso,
-      SPACE     = estimator_space
+      SPACE     = estimator_space,
+      PCGL_CARTER    = estimator_glasso_carter
     )
   }
 
