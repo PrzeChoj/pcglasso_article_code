@@ -46,7 +46,7 @@ x <- Matrix::solve(L, x, system = "Pt")
 data <- as.matrix(t(x))
 S_full  <- cov(data)
 split_train = 0.7
- lambda.min.ratio = 0.01
+lambda.min.ratio = 0.01
 n_train <- floor(split_train * n)
 idx     <- sample.int(n, n_train)
 train   <- data[idx, , drop = FALSE]
@@ -59,10 +59,10 @@ lam_max <- max(abs(S_train - diag(diag(S_train))))
 lam_min <- lambda.min.ratio * lam_max
 lambdas <- exp(seq(log(lam_max), log(lam_min), length.out = nlambda))
 
-carter_path <- pcglasso_path_carter(S_full,
-                                    lambdas,
-                                    pcglasso_tolerance
+carter_path <- pcglasso_path_carter(
+  S_full, lambdas, pcglasso_tolerance
 )
-loss_cg_full <- evaluate_objective_path(carter_path, Sigma = S_full,
-                                        n = n, gamma = 0.5)
+loss_cg_full <- evaluate_objective_path(
+  carter_path, Sigma = S_full, n = n, gamma = 0.5
+)
 plot(lambdas,loss_cg_full$loglik)

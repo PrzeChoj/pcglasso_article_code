@@ -150,21 +150,6 @@ estimator_pcglasso_C_cpp <- function(
 
 
 
-## start I, C++
-estimator_pcglasso_I_cpp <- function(
-    S_full, S_train, S_test,
-    n, n_train, n_test,
-    lambdas, alpha_grid, pcglasso_tolerance, ...
-) {
-  pcglasso_estimator_core(
-    S_full, S_train, S_test,
-    n, n_train, n_test,
-    lambdas, alpha_grid, pcglasso_tolerance,
-    R0_full_fun  = NULL,
-    R0_train_fun = NULL,
-    solver_R = "cpp"
-  )
-}
 
 
 
@@ -296,26 +281,16 @@ pcglasso_path_carter <-function(
   pcglasso_tolerance_modifier = 100,
   c_parameter = 1
 ){
-
   p <- dim(S)[1]
-  S_diags <- sqrt(diag(S))
-  S <- cov2cor(S)
 
-  S_eigen <- eigen(S, symmetric = TRUE)
-  S_evals <- S_eigen$values
-  S_evecs <- S_eigen$vectors
-  k <- length(which(S_evals < 1e-08))
-  if (identical(k, as.integer(0))){
-    Theta_start <- S_evecs %*% ( (1 / (S_evals)) * t(S_evecs) )
-  } else {
-    Theta_start <- S_evecs %*% ( (1 / (S_evals + 1 - min(S_evals))) * t(S_evecs) )
-  }
   precision_array <- array(0, dim = c(p, p, length(lambdas)))
   for(i in 1:length(lambdas)){
-    precision_array[,,i] <- pcglasso(S, lambdas[i],
-                        c = c_parameter,
-                        threshold = pcglasso_tolerance_modifier*tolerance)
-    #Theta_start <-  (S_diags) * cov2cor(precision_array[,,i]) * rep(S_diags, each = p)
+    precision_array[,,i] <- pcglasso(
+      S, lambdas[i],
+      c = c_parameter,
+      threshold = pcglasso_tolerance_modifier*tolerance,
+      Theta_start = if (i == 1) {NULL} else {cov2cor(precision_array[,,i-1])}
+    )
   }
   return(precision_array)
 }
