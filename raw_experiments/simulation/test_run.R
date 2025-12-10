@@ -65,10 +65,10 @@ res0_8_summarized <- res0_8 %>%
   select(method, timing, rmse) %>%
   group_by(method) %>%
   summarise(timing = mean(timing), rmse = mean(rmse))
-res0_1_summarized <- res0_1 %>%
-  select(method, timing, rmse) %>%
-  group_by(method) %>%
-  summarise(timing = mean(timing), rmse = mean(rmse))
+# res0_1_summarized <- res0_1 %>%
+#   select(method, timing, rmse) %>%
+#   group_by(method) %>%
+#   summarise(timing = mean(timing), rmse = mean(rmse))
 
 res0_8_summarized
 # A tibble: 12 × 3

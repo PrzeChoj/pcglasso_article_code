@@ -33,10 +33,11 @@ run_single <- function(Q, n, split_train = 0.7,
       PCGLFor_I = estimator_pcglasso_I_fortran,
       PCGLcpp_I = estimator_pcglasso_I_cpp,
       PCGLcpp_C = estimator_pcglasso_C_cpp,
+      PCGLcart_C = estimator_pcglasso_C_Carter,
+      PCGLcart_I = estimator_pcglasso_I_Carter,
       GL        = estimator_glasso,
       CGL       = estimator_corglasso,
-      SPACE     = estimator_space,
-      PCGL_CARTER    = estimator_glasso_carter
+      SPACE     = estimator_space
     )
   }
 
