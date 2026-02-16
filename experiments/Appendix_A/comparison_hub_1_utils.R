@@ -13,8 +13,7 @@ pcglasso_goal_function <- function(S, lambda, alpha, Sinv) {
   p            <- nrow(delta_matrix)
 
   theta_mat <- diag(theta_diag)
-  log_det   <- determinant(delta_matrix)$modulus
-  attr(log_det, "logarithm") <- NULL
+  log_det <- as.numeric(determinant(delta_matrix, logarithm = TRUE)$modulus)
   quad_term <- sum(diag(S %*% theta_mat %*% delta_matrix %*% theta_mat))
   l1_pen    <- lambda * sum(abs(delta_matrix - diag(p)))
 
@@ -23,7 +22,8 @@ pcglasso_goal_function <- function(S, lambda, alpha, Sinv) {
 
 simulate_pcglasso <- function(
     M, p, cor_modifier, lambda, alpha, tolerance_list,
-    pcglasso_tolerance_modifier = 100, seed = 1234) {
+    K_structure = c("hub", "line"),
+    pcglasso_tolerance_modifier = 100, seed = 1234, show_progress_bar = FALSE) {
   if (!is.null(seed)) set.seed(seed)
 
   n       <- 2 * p
@@ -31,22 +31,20 @@ simulate_pcglasso <- function(
   c_parameter <- 1 - alpha
   n_tol   <- length(tolerance_list)
 
-  # build K*
-  K_star <- diag(1, p)
-  K_star[1, 2:p] <- K_star[2:p, 1] <- -cor_modifier / sqrt(p)
-  K_star[1, 1]   <- 1
-
+  # get data
+  K_structure <- match.arg(K_structure)
+  K_star <- build_K_star(p, cor_modifier, K_structure)
   Z <- mvrnorm(n = n, mu = rep(0, p), Sigma = solve(K_star))
   S <- t(Z) %*% Z / n
   S <- cov2cor(S)
 
   run_with_obj <- function(fun) {
-    start <- Sys.time()
-    Sinv  <- fun()
-    end   <- Sys.time()
+    t0 <- proc.time()[["elapsed"]]
+    Sinv <- fun()
+    t1 <- proc.time()[["elapsed"]]
 
     list(
-      time = as.numeric(difftime(end, start, units = "secs")),
+      time = unname(t1 - t0),
       value = pcglasso_goal_function(S, lambda, alpha, Sinv)
     )
   }
@@ -64,16 +62,20 @@ simulate_pcglasso <- function(
   time_pcglasso_cpp_C_mat    <- matrix(NA, nrow = M, ncol = n_tol)
   res_val_pcglasso_cpp_C_mat <- matrix(NA, nrow = M, ncol = n_tol)
 
-  counter <- 0
-  pb <- txtProgressBar(min = 0, max = n_tol * M, style = 3)
+  if (show_progress_bar) {
+    counter <- 0
+    pb <- txtProgressBar(min = 0, max = n_tol * M, style = 3)
+  }
 
   for (m in seq_len(M)) {
     for (i in seq_along(tolerance_list)) {
       tolerance    <- tolerance_list[i]
       tol_pcglasso <- tolerance * pcglasso_tolerance_modifier
 
-      counter <- counter + 1
-      setTxtProgressBar(pb, counter)
+      if (show_progress_bar) {
+        counter <- counter + 1
+        setTxtProgressBar(pb, counter)
+      }
 
       # pcglasso_C
       res <- run_with_obj(function() {
@@ -144,7 +146,9 @@ simulate_pcglasso <- function(
       res_val_pcglasso_cpp_C_mat[m, i] <- res$value
     }
   }
-  close(pb)
+  if (show_progress_bar) {
+    close(pb)
+  }
 
   trim <- if (M >= 10) 0.1 else 0
   mean_trim <- function(mat) apply(mat, 2, mean, trim = trim)
@@ -190,6 +194,27 @@ simulate_pcglasso <- function(
   df
 }
 
+build_K_star <- function(p, cor_modifier, K_structure = c("hub","line")) {
+  K_structure <- match.arg(K_structure)
+
+  K_star <- diag(1, p)
+
+  if (K_structure == "hub") {
+    K_star[1, 2:p] <- K_star[2:p, 1] <- -cor_modifier / sqrt(p)
+
+  } else if (K_structure == "line") {
+    stopifnot(cor_modifier < 1, p > 1)
+    for (i in 2:p) {
+      K_star[i-1, i] <- K_star[i, i-1] <- cor_modifier / (2 * cos(pi/(p+1))) # singular for cor_modifier = 1
+    }
+  }
+
+  e_min <- min(eigen(K_star, symmetric = TRUE, only.values = TRUE)$values)
+  stopifnot(e_min > 1e-8)
+
+  K_star
+}
+
 compute_best_value <- function(
     p,
     cor_modifier,
@@ -197,16 +222,16 @@ compute_best_value <- function(
     alpha,
     best_method,
     tolerance_best,
+    K_structure = c("hub","line"),
     pcglasso_tolerance_modifier = 100,
     seed = 1234) {
   set.seed(seed)
   n <- 2 * p
 
-  S_star <- diag(1, p)
-  S_star[1, 2:p] <- S_star[2:p, 1] <- -cor_modifier / sqrt(p)
-  S_star[1, 1]   <- 1
+  K_structure <- match.arg(K_structure)
+  K_star <- build_K_star(p, cor_modifier, K_structure)
 
-  Z <- mvrnorm(n = n, mu = rep(0, p), Sigma = solve(S_star))
+  Z <- mvrnorm(n = n, mu = rep(0, p), Sigma = solve(K_star))
   S <- t(Z) %*% Z / n
   S <- cov2cor(S)
 
