@@ -104,6 +104,10 @@ for (file in files) {
     geom_point(size = 4) +
     scale_shape_manual(values = c(C = 20, I = 8)) +
     theme_minimal(base_size = 14) +
+    theme(
+      panel.background = element_rect(fill = "white", colour = "white"),
+      plot.background  = element_rect(fill = "white", colour = "white")
+    ) +
     scale_y_log10() +
     expand_limits(x = 0) +
     labs(

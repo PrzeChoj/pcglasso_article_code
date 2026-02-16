@@ -1,13 +1,10 @@
 # devtools::install_github("JackStorrorCarter/PCGLASSO")
 # devtools::install_github("PrzeChoj/pcglassoFast")
-# devtools::install_github("PrzeChoj/PCGLASSOcpp")
 requireNamespace("PCGLASSO")
 requireNamespace("pcglassoFast")
-requireNamespace("PCGLASSOcpp")
 
 library(PCGLASSO)
 library(pcglassoFast)
-library(PCGLASSOcpp)
 library(MASS)
 
 pcglasso_goal_function <- function(S, lambda, alpha, Sinv) {
@@ -82,6 +79,7 @@ simulate_pcglasso <- function(
       res <- run_with_obj(function() {
         pcglasso(
           S, lambda, c_parameter,
+          Theta_start = solve(S),
           threshold = tol_pcglasso
         )
       })
@@ -103,6 +101,7 @@ simulate_pcglasso <- function(
       res <- run_with_obj(function() {
         pcglassoFast(
           S, lambda = lambda, alpha = alpha,
+          R = diag(nrow(S)),
           tolerance = tolerance
         )$Sinv
       })
@@ -122,8 +121,10 @@ simulate_pcglasso <- function(
 
       # pcglasso_cpp_I
       res <- run_with_obj(function() {
-        blockwise_optimization(
-          S, lambda, alpha,
+        pcglassoFast(
+          S, lambda = lambda, alpha = alpha,
+          solver_R = "cpp",
+          R = diag(nrow(S)),
           tolerance = tolerance
         )$Sinv
       })
@@ -132,10 +133,10 @@ simulate_pcglasso <- function(
 
       # pcglasso_cpp_C
       res <- run_with_obj(function() {
-        Q0 <- cov2cor(solve(S))
-        blockwise_optimization(
-          S, lambda, alpha,
-          Q = Q0, Q_inv = solve(Q0),
+        pcglassoFast(
+          S, lambda = lambda, alpha = alpha,
+          solver_R = "cpp",
+          R = cov2cor(solve(S)),
           tolerance = tolerance
         )$Sinv
       })
@@ -214,36 +215,40 @@ compute_best_value <- function(
 
   Sinv <- switch(
     best_method,
-    pcglasso_C = pcglasso(
-      S, lambda, c_parameter,
-      threshold = tol_pcglasso
-    ),
     pcglasso_I = pcglasso(
       S, lambda, c_parameter,
       Theta_start = diag(p),
       threshold   = tol_pcglasso
     ),
+    pcglasso_C = pcglasso(
+      S, lambda, c_parameter,
+      Theta_start = solve(S),
+      threshold = tol_pcglasso
+    ),
     pcglassoFast_I = pcglassoFast(
       S, lambda = lambda, alpha = alpha,
+      R = diag(p),
+      solver_R = "fortran",
       tolerance = tolerance_best
     )$Sinv,
     pcglassoFast_C = pcglassoFast(
       S, lambda = lambda, alpha = alpha,
       R = cov2cor(solve(S)),
+      solver_R = "fortran",
       tolerance = tolerance_best
     )$Sinv,
-    pcglasso_cpp_I = blockwise_optimization(
-      S, lambda, alpha,
+    pcglasso_cpp_I = pcglassoFast(
+      S, lambda = lambda, alpha = alpha,
+      R = diag(p),
+      solver_R = "cpp",
       tolerance = tolerance_best
     )$Sinv,
-    pcglasso_cpp_C = {
-      Q0 <- cov2cor(solve(S))
-      blockwise_optimization(
-        S, lambda, alpha,
-        Q = Q0, Q_inv = solve(Q0),
-        tolerance = tolerance_best
-      )$Sinv
-    },
+    pcglasso_cpp_C = pcglassoFast(
+      S, lambda = lambda, alpha = alpha,
+      R = cov2cor(solve(S)),
+      solver_R = "cpp",
+      tolerance = tolerance_best
+    )$Sinv,
     stop("Unknown best_method: ", best_method)
   )
 
