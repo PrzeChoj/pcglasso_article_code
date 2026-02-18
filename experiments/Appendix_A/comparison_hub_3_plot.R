@@ -118,7 +118,7 @@ for (file in files) {
     stop("best_method not found or not unique for: p=",
          info$p, " cor=", info$cor_modifier,
          " lambda=", info$lambda, " alpha=", info$alpha,
-         " K=", info$K_structure)
+         " ", info$K_structure, " graph")
   }
   best_method <- row_best$best_method[1]
   best_value <- compute_best_value(
@@ -153,7 +153,7 @@ for (file in files) {
     labs(
       title = "PCGLASSO vs PCGLASSOFast vs PCGLASSOcpp",
       subtitle = sprintf(
-        "p = %d   |   K = %s   |   %s   |   lambda = %.1f   |   alpha = %.1f",
+        "p = %d   |   %s graph   |   %s   |   lambda = %.1f   |   alpha = %.1f",
         info$p, info$K_structure,
         fmt_part_cor(info$p, info$cor_modifier, info$K_structure),
         info$lambda, info$alpha
