@@ -1,7 +1,7 @@
 library(ggplot2)
 library(stringr)
 
-source("./experiments/Appendix_A/comparison_hub_1_utils.R")
+source("./experiments/Appendix_A/comparison_1_utils.R")
 
 chosen_M <- 50
 
@@ -142,10 +142,7 @@ for (file in files) {
   )
 
   df$value_shifted <- df$value - best_value + 1e-12
-  if (any(df$value_shifted == 0)) {
-    df$value_shifted <- df$value_shifted
-  }
-  stopifnot(all(df$value_shifted > 0)) # when error, make tolerance_best smaller
+  stopifnot(all(df$value_shifted > 0)) # when error, make tolerance_best smaller for better best_value estimate
 
   # ---------------- plotting ----------------
   plt <- ggplot(df, aes(x = time, y = value_shifted,

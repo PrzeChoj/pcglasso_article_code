@@ -1,7 +1,5 @@
 # devtools::install_github("JackStorrorCarter/PCGLASSO")
 # devtools::install_github("PrzeChoj/pcglassoFast")
-requireNamespace("PCGLASSO")
-requireNamespace("pcglassoFast")
 
 library(PCGLASSO)
 library(pcglassoFast)
