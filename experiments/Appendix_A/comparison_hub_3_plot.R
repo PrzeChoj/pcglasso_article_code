@@ -3,6 +3,8 @@ library(stringr)
 
 source("./experiments/Appendix_A/comparison_hub_1_utils.R")
 
+chosen_M <- 50
+
 data_dir <- "./experiments/Appendix_A/res_data"
 plot_dir <- "./experiments/Appendix_A/plots"
 dir.create(plot_dir, showWarnings = FALSE, recursive = TRUE)
@@ -97,6 +99,9 @@ fmt_part_cor <- function(p, cor_modifier, K_structure) {
 
 for (file in files) {
   info <- parse_filename(file)
+  if (info$M != chosen_M) {
+    next
+  }
   df   <- readRDS(file)
 
   # overwrite metadata from filename (safer)
@@ -114,13 +119,17 @@ for (file in files) {
     alpha        == info$alpha &
     K_structure  == info$K_structure
   )
-  if (nrow(row_best) != 1L) {
-    stop("best_method not found or not unique for: p=",
-         info$p, " cor=", info$cor_modifier,
-         " lambda=", info$lambda, " alpha=", info$alpha,
-         " ", info$K_structure, " graph")
+  if (nrow(row_best) == 1L) {
+    best_method <- row_best$best_method[1]
+  } else {
+    warning(
+      "best_method not found or not unique for: p=",
+      info$p, " cor=", info$cor_modifier,
+      " lambda=", info$lambda, " alpha=", info$alpha,
+      " ", info$K_structure, " graph"
+    )
+    best_method <- "pcglassoFast_C"
   }
-  best_method <- row_best$best_method[1]
   best_value <- compute_best_value(
     p            = info$p,
     cor_modifier = info$cor_modifier,
