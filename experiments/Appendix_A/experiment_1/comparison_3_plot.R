@@ -1,12 +1,12 @@
 library(ggplot2)
 library(stringr)
 
-source("./experiments/Appendix_A/comparison_1_utils.R")
+source("./experiments/Appendix_A/experiment_1/comparison_1_utils.R")
 
 chosen_M <- 10
 
-data_dir <- "./experiments/Appendix_A/res_data"
-plot_dir <- "./experiments/Appendix_A/plots"
+data_dir <- "./experiments/Appendix_A/experiment_1/res_data"
+plot_dir <- "./experiments/Appendix_A/experiment_1/plots"
 dir.create(plot_dir, showWarnings = FALSE, recursive = TRUE)
 
 # best method table

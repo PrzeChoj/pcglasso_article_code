@@ -1,9 +1,9 @@
 library(parallel)
 library(pbmcapply)
 
-source("./experiments/Appendix_A/comparison_1_utils.R")
+source("./experiments/Appendix_A/experiment_1/comparison_1_utils.R")
 
-data_dir <- "./experiments/Appendix_A/res_data"
+data_dir <- "./experiments/Appendix_A/experiment_1/res_data"
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
 # hyper-parameters
