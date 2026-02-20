@@ -3,7 +3,7 @@ library(stringr)
 
 source("./experiments/Appendix_A/comparison_1_utils.R")
 
-chosen_M <- 50
+chosen_M <- 10
 
 data_dir <- "./experiments/Appendix_A/res_data"
 plot_dir <- "./experiments/Appendix_A/plots"
@@ -12,25 +12,41 @@ dir.create(plot_dir, showWarnings = FALSE, recursive = TRUE)
 # best method table
 hub_methods <- c(
   "pcglasso_C",
+  "pcglasso_C",
+  "pcglasso_cpp_C",
   "pcglasso_cpp_C",
   "pcglasso_cpp_I",
-  "pcglassoFast_I",
+  "pcglasso_cpp_I",
+  "pcglasso_cpp_C",
+  "pcglassoFast_C",
+  "pcglasso_C",
   "pcglasso_cpp_I",
   "pcglassoFast_C",
+  "pcglassoFast_C",
+  "pcglasso_cpp_I",
   "pcglassoFast_I",
-  "pcglasso_I",
-  "pcglasso_C",
-  "pcglassoFast_C",
-  "pcglassoFast_C",
-  "pcglassoFast_C",
   "pcglassoFast_I",
   "pcglassoFast_C",
+  "pcglasso_cpp_I",
+  "pcglasso_cpp_C",
+  "pcglassoFast_C",
   "pcglassoFast_I",
-  "pcglasso_I"
+  "pcglasso_cpp_C",
+  "pcglassoFast_I",
+  "pcglassoFast_I",
+  "pcglassoFast_I",
+  "pcglasso_cpp_C",
+  "pcglassoFast_I",
+  "pcglassoFast_C",
+  "pcglassoFast_C",
+  "pcglasso_cpp_C",
+  "pcglassoFast_I",
+  "pcglassoFast_I",
+  "pcglassoFast_I"
 )
-stopifnot(length(hub_methods) == 16)
+stopifnot(length(hub_methods) == 32)
 grid_hub <- expand.grid(
-  p            = c(50, 70),
+  p            = c(10, 50, 100, 150),
   cor_modifier = c(1.0, 0.9),
   lambda       = c(0.1, 0.2),
   alpha        = c(0.0, 0.5),
@@ -39,7 +55,7 @@ grid_hub <- expand.grid(
 )
 
 grid_line <- expand.grid(
-  p            = c(50, 70),
+  p            = c(10, 50, 100, 150),
   cor_modifier = c(0.8, 0.9),
   lambda       = c(0.1, 0.2),
   alpha        = c(0.0, 0.5),
@@ -137,7 +153,7 @@ for (file in files) {
     alpha        = info$alpha,
     best_method  = best_method,
     K_structure  = info$K_structure,
-    tolerance_best = 1e-12,
+    tolerance_best = 1e-13,
     seed         = 1234
   )
 
