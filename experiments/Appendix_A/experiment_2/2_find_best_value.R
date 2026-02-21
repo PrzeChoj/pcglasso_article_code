@@ -1,4 +1,4 @@
-# Step 1 — Baseline map (p, structure) -> best_value
+# 2 minutes on 1 core of dgx
 
 source("./experiments/Appendix_A/utils.R")
 source("./experiments/Appendix_A/experiment_2/0_parameters.R")

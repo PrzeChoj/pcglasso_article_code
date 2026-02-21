@@ -1,3 +1,5 @@
+# 12 minutes on 32 cores of sr
+
 source("./experiments/Appendix_A/utils.R")
 source("./experiments/Appendix_A/experiment_2/utils.R")
 source("./experiments/Appendix_A/experiment_2/0_parameters.R")
