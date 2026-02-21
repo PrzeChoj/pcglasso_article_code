@@ -1,4 +1,4 @@
-# 16 minutes on 8 cores of Apple M2
+# 10 minutes on 32 cores of sr
 
 source("./experiments/Appendix_A/utils.R")
 source("./experiments/Appendix_A/experiment_2/utils.R")
