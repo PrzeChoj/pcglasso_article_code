@@ -10,4 +10,4 @@ tol_grid <- 10^((-2):(-10))
 tol_strict <- 1e-13
 acceptable_error <- 1e-4
 R_strict <- 2
-M <- 2
+M <- 1
