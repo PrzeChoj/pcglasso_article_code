@@ -3,7 +3,7 @@ library(stringr)
 
 source("./experiments/Appendix_A/experiment_1/comparison_1_utils.R")
 
-chosen_M <- 10
+chosen_M <- 50
 
 data_dir <- "./experiments/Appendix_A/experiment_1/res_data"
 plot_dir <- "./experiments/Appendix_A/experiment_1/plots"
@@ -186,7 +186,7 @@ for (file in files) {
 
   # -------- save plot --------
   plot_file <- sprintf(
-    "%s/plot_%s_p%d_cor%s_lambda%s_alpha%s.png",
+    "%s/plot_%s_p%d_cor%s_lambda%s_alpha%s.pdf",
     plot_dir,
     info$K_structure,
     info$p,
