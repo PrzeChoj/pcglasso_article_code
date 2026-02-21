@@ -7,7 +7,7 @@ data_dir <- "./experiments/Appendix_A/experiment_1/res_data"
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
 # hyper-parameters
-M <- 10
+M <- 50
 p_vec                 <- c(10, 50, 100, 150)
 cor_modifier_vec_hub  <- c(1, 0.9)
 cor_modifier_vec_line <- c(0.8, 0.9)
