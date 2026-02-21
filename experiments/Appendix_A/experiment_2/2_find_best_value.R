@@ -29,17 +29,13 @@ res_list <- pbmclapply(seq_len(nrow(grid)), function(i) {
     lambda = lambda, alpha = alpha
   )
 
-  print(best_method)
-
-  best_value <- compute_best_value_S(
+  best_value <- compute_function_value(
     p = p,
-    cor_modifier = cor_modifier_map[[graph_structure]],
     lambda = lambda,
     alpha = alpha,
-    best_method = best_method,
-    tolerance_best = tol_strict,
-    S = S,
-    verbose = 3
+    method = best_method,
+    tolerance = tol_strict,
+    S = S
   )
 
   data.frame(

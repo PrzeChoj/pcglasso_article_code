@@ -9,69 +9,6 @@ data_dir <- "./experiments/Appendix_A/experiment_1/res_data"
 plot_dir <- "./experiments/Appendix_A/experiment_1/plots"
 dir.create(plot_dir, showWarnings = FALSE, recursive = TRUE)
 
-# best method table
-hub_methods <- c(
-  "pcglasso_C",
-  "pcglasso_C",
-  "pcglasso_cpp_C",
-  "pcglasso_cpp_C",
-  "pcglasso_cpp_I",
-  "pcglasso_cpp_I",
-  "pcglasso_cpp_C",
-  "pcglassoFast_C",
-  "pcglasso_C",
-  "pcglasso_cpp_I",
-  "pcglassoFast_C",
-  "pcglassoFast_C",
-  "pcglasso_cpp_I",
-  "pcglassoFast_I",
-  "pcglassoFast_I",
-  "pcglassoFast_C",
-  "pcglasso_cpp_I",
-  "pcglasso_cpp_C",
-  "pcglassoFast_C",
-  "pcglassoFast_I",
-  "pcglasso_cpp_C",
-  "pcglassoFast_I",
-  "pcglassoFast_I",
-  "pcglassoFast_I",
-  "pcglasso_cpp_C",
-  "pcglassoFast_I",
-  "pcglassoFast_C",
-  "pcglassoFast_C",
-  "pcglasso_cpp_C",
-  "pcglassoFast_I",
-  "pcglassoFast_I",
-  "pcglassoFast_I"
-)
-stopifnot(length(hub_methods) == 32)
-grid_hub <- expand.grid(
-  p            = c(10, 50, 100, 150),
-  cor_modifier = c(1.0, 0.9),
-  lambda       = c(0.1, 0.2),
-  alpha        = c(0.0, 0.5),
-  KEEP.OUT.ATTRS = FALSE,
-  stringsAsFactors = FALSE
-)
-
-grid_line <- expand.grid(
-  p            = c(10, 50, 100, 150),
-  cor_modifier = c(0.8, 0.9),
-  lambda       = c(0.1, 0.2),
-  alpha        = c(0.0, 0.5),
-  KEEP.OUT.ATTRS = FALSE,
-  stringsAsFactors = FALSE
-)
-
-best_method_table <- rbind(
-  transform(grid_line,
-            K_structure = "line",
-            best_method = "pcglassoFast_C"),
-  transform(grid_hub,
-            K_structure = "hub",
-            best_method = hub_methods)
-)
-
 files <- list.files(
   data_dir,
   pattern = "^comparison_(hub|line)_M[0-9]+_p[0-9]+_cor.*_lambda.*_alpha.*\\.rds$",
