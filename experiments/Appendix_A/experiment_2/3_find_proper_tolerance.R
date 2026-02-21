@@ -10,7 +10,7 @@ baseline_best_value <- read.csv("./experiments/Appendix_A/experiment_2/res_data/
 library(parallel)
 library(pbmcapply)
 
-n_cores <- max(1L, min(detectCores(logical = FALSE) - 1L, nrow(grid)))
+n_cores <- max(1L, detectCores(logical = FALSE) - 1L)
 
 grid <- expand.grid(
   structure = graph_structure_vec,
