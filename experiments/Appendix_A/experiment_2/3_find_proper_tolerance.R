@@ -22,7 +22,7 @@ grid <- expand.grid(
 
 passes_at_tol <- function(S, solver, start, tol, baseline, R_strict, acceptable_error) {
   for (r in seq_len(R_strict)) {
-    f_end <- value_for_tolerance(S, solver, start, tol)
+    f_end <- value_after_optimization(S, solver, start, tol, lambda, alpha)
     gap   <- f_end - baseline
     if (!is.finite(gap) || gap > acceptable_error) return(FALSE)
   }

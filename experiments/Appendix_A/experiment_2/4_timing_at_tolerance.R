@@ -48,9 +48,9 @@ grid <- grid_cfg[rep(seq_len(nrow(grid_cfg)), each = M), , drop = FALSE]
 grid$run_id <- rep(seq_len(M), times = nrow(grid_cfg))
 rownames(grid) <- NULL
 
-time_value_for_tolerance <- function(S, solver, start, tol) {
+time_optimization <- function(S, solver, start, tol) {
   t0 <- proc.time()[["elapsed"]]
-  f_end <- value_for_tolerance(S, solver, start, tol)
+  f_end <- value_after_optimization(S, solver, start, tol, lambda, alpha)
   t1 <- proc.time()[["elapsed"]]
   list(time = t1 - t0, f_end = f_end)
 }
@@ -68,7 +68,7 @@ one_run <- function(i) {
 
   baseline <- get_baseline(p, structure)
 
-  out <- time_value_for_tolerance(S, solver, start, tol)
+  out <- time_optimization(S, solver, start, tol)
   gap <- out$f_end - baseline
   success <- is.finite(gap) && (gap <= acceptable_error)
 
