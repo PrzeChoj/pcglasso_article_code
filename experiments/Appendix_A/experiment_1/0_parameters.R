@@ -10,4 +10,4 @@ tolerance_list <- exp(seq(log(0.01), log(0.00000001), length.out = 12))
 graph_structure_vec <- c("hub", "line")
 solver_vec <- c("pcglasso_cpp", "pcglasso_fortran", "pcglasso")
 starting_point_vec <- c("C", "I")
-pcglasso_tolerance_multiplier <- 100
+pcglasso_tolerance_multiplier <- 1000
