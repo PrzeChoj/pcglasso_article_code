@@ -61,6 +61,10 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
     stop("Unknown start: ", start)
   )
 
+  if (solver == "pcglassoFast") { # TODO: Rename to "Dual"
+    solver <- "pcglasso_fortran"
+  }
+
   Sinv <- switch(
     solver,
     pcglasso = pcglasso(
@@ -153,8 +157,11 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
   )
 }
 
-get_best_method <- function(p, graph_structure, lambda, alpha) {
-  cor_mod <- cor_modifier_map[[graph_structure]]
+get_best_method <- function(p, graph_structure, lambda, alpha, cor_mod = NULL) {
+  if (is.null(cor_mod)) {
+    cor_mod <- cor_modifier_map[[graph_structure]]
+  }
+  stopifnot(length(cor_mod) == 1)
 
   row_best <- best_method_table[
     best_method_table$p == p &
@@ -173,6 +180,16 @@ get_best_method <- function(p, graph_structure, lambda, alpha) {
   warning("best_method not found or not unique")
   "pcglassoFast_C"
 }
+
+get_best_value <- function(S, p, graph_structure, lambda, alpha, cor_mod = NULL) {
+  best_method <- get_best_method(p, graph_structure, lambda, alpha, cor_mod)
+  value_after_optimization(
+    S,
+    substr(best_method, 1, nchar(best_method)-2), substr(best_method, nchar(best_method), nchar(best_method)),
+    1e-13, lambda, alpha
+  )
+}
+
 
 # TODO: Delete this funciton
 compute_best_value <- function(
