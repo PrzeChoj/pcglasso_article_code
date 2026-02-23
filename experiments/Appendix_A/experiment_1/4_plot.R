@@ -16,8 +16,8 @@ summary_path <- file.path(data_dir, sprintf("experiment_1_summary_M%d.csv", M))
 df_all <- read_csv(summary_path, show_col_types = FALSE)
 
 # expected columns
-stopifnot(all(c("p","cor_modifier","lambda","alpha","K_structure","solver","starting_point","tolerance","time_trimmed_mean") %in% names(df_all)))
-stopifnot("f_end" %in% names(df_all))  # require objective info for y-axis
+expected_columns <- c("p", "cor_modifier", "lambda", "alpha", "K_structure", "solver", "starting_point", "tolerance", "time_trimmed_mean", "f_end")
+stopifnot(all(expected_columns %in% names(df_all)))
 
 # labels used by plot
 df_all <- df_all %>%
@@ -29,9 +29,13 @@ df_all <- df_all %>%
   )
 
 fmt_part_cor <- function(p, cor_modifier, K_structure) {
-  if (K_structure == "hub") sprintf("part_cor = -%.1f / sqrt(p)", cor_modifier)
-  else if (K_structure == "line") sprintf("part_cor = %.1f * max", cor_modifier)
-  else stop("Unknown K_structure: ", K_structure)
+  if (K_structure == "hub") {
+    sprintf("part_cor = -%.1f / sqrt(p)", cor_modifier)
+  } else if (K_structure == "line") {
+    sprintf("part_cor = %.1f * max", cor_modifier)
+  } else {
+    stop("Unknown K_structure: ", K_structure)
+  }
 }
 
 group_keys <- df_all %>%

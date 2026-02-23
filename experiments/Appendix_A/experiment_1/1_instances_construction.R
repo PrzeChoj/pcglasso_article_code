@@ -1,3 +1,4 @@
+source("./experiments/Appendix_A/utils.R")
 source("./experiments/Appendix_A/experiment_1/0_parameters.R")
 
 set.seed(1234)
