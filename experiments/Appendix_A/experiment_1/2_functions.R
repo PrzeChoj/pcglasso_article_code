@@ -16,6 +16,10 @@ run_one <- function(row) {
   S <- instances[[K_structure]][[as.character(p)]][[as.character(cor_modifier)]]
   if (is.null(S)) stop("Missing S for: ", K_structure, " p=", p, " cor=", cor_modifier)
 
+  if (solver == "pcglasso") {
+    tolerance <- tolerance * pcglasso_tolerance_multiplier
+  }
+
   res <- tryCatch(
     {
       t0 <- proc.time()[["elapsed"]]
