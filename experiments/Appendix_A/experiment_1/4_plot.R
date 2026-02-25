@@ -59,7 +59,7 @@ for (i in seq_len(nrow(group_keys))) {
   best_value <- get_best_value(S, info$p, info$K_structure, info$lambda, info$alpha, info$cor_modifier)
 
   df <- df %>%
-    mutate(value_shifted = value - best_value) # TODO: Do I need to + 1e-12 here?
+    mutate(value_shifted = value - best_value + 1e-12)
 
   stopifnot(all(df$value_shifted > 0))
 
