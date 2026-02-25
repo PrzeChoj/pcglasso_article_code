@@ -29,14 +29,9 @@ res_list <- pbmclapply(seq_len(nrow(grid)), function(i) {
     lambda = lambda, alpha = alpha
   )
 
-  best_value <- compute_function_value(
-    p = p,
-    lambda = lambda,
-    alpha = alpha,
-    method = best_method,
-    tolerance = tol_strict,
-    S = S
-  )
+  solver <- substr(best_method, 1, nchar(best_method) - 2)
+  start <- substr(best_method, nchar(best_method), nchar(best_method))
+  best_value <- value_after_optimization(S, solver, start, tol_strict, lambda, alpha)
 
   data.frame(
     p = p,

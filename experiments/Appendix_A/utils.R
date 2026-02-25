@@ -50,125 +50,43 @@ S_from_K_star <- function(K_star, n) {
   S
 }
 
-compute_best_value <- function(
-    p,
-    cor_modifier,
-    lambda,
-    alpha,
-    best_method,
-    tolerance_best,
-    K_structure = c("hub","line"),
-    pcglasso_tolerance_modifier = 100,
-    seed = 1234) {
-  set.seed(seed)
-  n <- 2 * p
-
-  K_structure <- match.arg(K_structure)
-  K_star <- build_K_star(p, cor_modifier, K_structure)
-  S <- S_from_K_star(K_star, n)
-
-  tol_pcglasso <- tolerance_best * pcglasso_tolerance_modifier
+value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
+  p <- nrow(S)
   c_parameter <- 1 - alpha
 
-  Sinv <- switch(
-    best_method,
-    pcglasso_I = pcglasso(
-      S, lambda, c_parameter,
-      Theta_start = diag(p),
-      threshold   = tol_pcglasso
-    ),
-    pcglasso_C = pcglasso(
-      S, lambda, c_parameter,
-      Theta_start = solve(S),
-      threshold = tol_pcglasso
-    ),
-    pcglassoFast_I = pcglassoFast(
-      S, lambda = lambda, alpha = alpha,
-      R = diag(p),
-      solver_R = "fortran",
-      tolerance = tolerance_best
-    )$Sinv,
-    pcglassoFast_C = pcglassoFast(
-      S, lambda = lambda, alpha = alpha,
-      R = cov2cor(solve(S)),
-      solver_R = "fortran",
-      tolerance = tolerance_best
-    )$Sinv,
-    pcglasso_cpp_I = pcglassoFast(
-      S, lambda = lambda, alpha = alpha,
-      R = diag(p),
-      solver_R = "cpp",
-      tolerance = tolerance_best
-    )$Sinv,
-    pcglasso_cpp_C = pcglassoFast(
-      S, lambda = lambda, alpha = alpha,
-      R = cov2cor(solve(S)),
-      solver_R = "cpp",
-      tolerance = tolerance_best
-    )$Sinv,
-    stop("Unknown best_method: ", best_method)
+  starting_matrix <- switch(
+    start,
+    I = diag(p),
+    C = solve(S),
+    stop("Unknown start: ", start)
   )
 
-  pcglasso_goal_function(S, lambda, alpha, Sinv)
-}
-
-compute_function_value <- function(
-    p,
-    lambda,
-    alpha,
-    method,
-    tolerance,
-    S,
-    seed = 1234,
-    verbose = 0) {
-  set.seed(seed)
-  c_parameter <- 1 - alpha
+  if (solver == "pcglassoFast") { # TODO: Rename to "Dual"
+    solver <- "pcglasso_fortran"
+  }
 
   Sinv <- switch(
-    method,
-    pcglasso_I = pcglasso(
+    solver,
+    pcglasso = pcglasso(
       S, lambda, c_parameter,
-      Theta_start = diag(p),
-      threshold   = tolerance
+      Theta_start = starting_matrix,
+      threshold   = tol
     ),
-    pcglasso_C = pcglasso(
-      S, lambda, c_parameter,
-      Theta_start = solve(S),
-      threshold = tolerance
-    ),
-    pcglassoFast_I = pcglassoFast(
+    pcglasso_fortran = pcglassoFast(
       S, lambda = lambda, alpha = alpha,
-      R = diag(p),
+      R = cov2cor(starting_matrix),
       solver_R = "fortran",
-      tolerance = tolerance,
-      max_iter = 10000,
-      verbose = verbose
+      tolerance = tol,
+      max_iter = 10000
     )$Sinv,
-    pcglassoFast_C = pcglassoFast(
+    pcglasso_cpp = pcglassoFast(
       S, lambda = lambda, alpha = alpha,
-      R = cov2cor(solve(S)),
-      solver_R = "fortran",
-      tolerance = tolerance,
-      max_iter = 10000,
-      verbose = verbose
-    )$Sinv,
-    pcglasso_cpp_I = pcglassoFast(
-      S, lambda = lambda, alpha = alpha,
-      R = diag(p),
+      R = cov2cor(starting_matrix),
       solver_R = "cpp",
-      tolerance = tolerance,
-      max_iter = 10000,
-      verbose = verbose
+      tolerance = tol,
+      max_iter = 10000
     )$Sinv,
-    pcglasso_cpp_C = pcglassoFast(
-      S, lambda = lambda, alpha = alpha,
-      R = cov2cor(solve(S)),
-      solver_R = "cpp",
-      tolerance = tolerance,
-      max_iter = 10000,
-      verbose = verbose
-    )$Sinv,
-    stop("Unknown method: ", method)
+    stop("Unknown solver: ", solver)
   )
 
   pcglasso_goal_function(S, lambda, alpha, Sinv)
@@ -212,7 +130,7 @@ compute_function_value <- function(
   )
   stopifnot(length(hub_methods) == 32)
   grid_hub <- expand.grid(
-    p            = c(10, 50, 100, 150),
+    p            = c(10, 50, 100, 150), # TODO: Add p = 200
     cor_modifier = c(1.0, 0.9),
     lambda       = c(0.1, 0.2),
     alpha        = c(0.0, 0.5),
@@ -221,7 +139,7 @@ compute_function_value <- function(
   )
 
   grid_line <- expand.grid(
-    p            = c(10, 50, 100, 150),
+    p            = c(10, 50, 100, 150, 200),
     cor_modifier = c(0.8, 0.9),
     lambda       = c(0.1, 0.2),
     alpha        = c(0.0, 0.5),
@@ -232,15 +150,18 @@ compute_function_value <- function(
   best_method_table <- rbind(
     transform(grid_line,
               K_structure = "line",
-              best_method = "pcglassoFast_C"),
+              best_method = "pcglassoFast_I"),
     transform(grid_hub,
               K_structure = "hub",
               best_method = hub_methods)
   )
 }
 
-get_best_method <- function(p, graph_structure, lambda, alpha) {
-  cor_mod <- cor_modifier_map[[graph_structure]]
+get_best_method <- function(p, graph_structure, lambda, alpha, cor_mod = NULL) {
+  if (is.null(cor_mod)) {
+    cor_mod <- cor_modifier_map[[graph_structure]]
+  }
+  stopifnot(length(cor_mod) == 1)
 
   row_best <- best_method_table[
     best_method_table$p == p &
@@ -256,14 +177,15 @@ get_best_method <- function(p, graph_structure, lambda, alpha) {
     return(row_best$best_method[1])
   }
 
-  warning(
-    "best_method not found or not unique for: ",
-    "p=", p,
-    " cor=", cor_mod,
-    " lambda=", lambda,
-    " alpha=", alpha,
-    " structure=", graph_structure,
-    " (fallback: pcglassoFast_C)"
-  )
+  warning("best_method not found or not unique")
   "pcglassoFast_C"
+}
+
+get_best_value <- function(S, p, graph_structure, lambda, alpha, cor_mod = NULL) {
+  best_method <- get_best_method(p, graph_structure, lambda, alpha, cor_mod)
+  value_after_optimization(
+    S,
+    substr(best_method, 1, nchar(best_method)-2), substr(best_method, nchar(best_method), nchar(best_method)),
+    1e-13, lambda, alpha
+  )
 }
