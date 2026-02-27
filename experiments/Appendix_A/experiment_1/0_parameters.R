@@ -1,4 +1,4 @@
-M <- 2
+M <- 50
 p_vec <- c(10, 50, 100, 150, 200)
 cor_modifier_map <- list(
   hub = c(1, 0.9),
