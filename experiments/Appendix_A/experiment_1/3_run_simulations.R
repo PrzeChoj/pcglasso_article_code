@@ -15,33 +15,17 @@ set.seed(1234)
 Sys.setenv(OMP_NUM_THREADS = 1)
 
 
-param_grid_hub <- expand.grid(
+param_grid <- expand.grid(
   p = p_vec,
-  cor_modifier = cor_modifier_map[["hub"]],
   lambda = lambda_vec,
   alpha = alpha_vec,
-  K_structure = "hub",
+  K_structure = c("hub_1", "hub_09", "AR2", "random"),
   solver = solver_vec,
   starting_point = starting_point_vec,
   tolerance = tolerance_list,
   KEEP.OUT.ATTRS = FALSE,
   stringsAsFactors = FALSE
 )
-
-param_grid_line <- expand.grid(
-  p = p_vec,
-  cor_modifier = cor_modifier_map[["line"]],
-  lambda = lambda_vec,
-  alpha = alpha_vec,
-  K_structure = "line",
-  solver = solver_vec,
-  starting_point = starting_point_vec,
-  tolerance = tolerance_list,
-  KEEP.OUT.ATTRS = FALSE,
-  stringsAsFactors = FALSE
-)
-
-param_grid <- rbind(param_grid_hub, param_grid_line)
 
 param_grid_M <- param_grid[rep(seq_len(nrow(param_grid)), each = M), , drop = FALSE]
 param_grid_M$m <- rep(seq_len(M), times = nrow(param_grid))
@@ -76,7 +60,7 @@ if (nrow(raw) != nrow(param_grid_M) ||
 trim <- if (M >= 10) 0.1 else 0
 
 summary_data <- raw %>%
-  group_by(p, cor_modifier, lambda, alpha, K_structure, solver, starting_point, tolerance) %>%
+  group_by(p, lambda, alpha, K_structure, solver, starting_point, tolerance) %>%
   summarize(
     time_trimmed_mean = mean(time, trim = trim),
     f_end_best = min(f_end),

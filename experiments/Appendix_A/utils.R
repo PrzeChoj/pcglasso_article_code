@@ -18,20 +18,44 @@ pcglasso_goal_function <- function(S, lambda, alpha, Sinv) {
   -log_det - 2 * (1 - alpha) * sum(log(theta_diag)) + quad_term + l1_pen
 }
 
-build_K_star <- function(p, cor_modifier, K_structure = c("hub","line")) {
+build_K_star <- function(p, K_structure = c("hub_1", "hub_09", "AR2", "random")) {
   K_structure <- match.arg(K_structure)
 
   K_star <- diag(1, p)
+  switch (K_structure,
+    hub_1 = {
+      K_star[1, 2:p] <- K_star[2:p, 1] <- -1 / sqrt(p)
+    },
+    hub_09 = {
+      K_star[1, 2:p] <- K_star[2:p, 1] <- -0.9 / sqrt(p)
+    },
+    AR2 = {
+      stopifnot(p > 2)
+      for (i in 2:p) {
+        K_star[i-1, i] <- K_star[i, i-1] <- 1/2
+      }
+      for (i in 3:p) {
+        K_star[i-2, i] <- K_star[i, i-2] <- 1/4
+      }
+    },
+    random = {
+      for (i in 1:(ceiling(3*p/2))) {
+        matrix_indexes <- sample(p, 2)
+        K_star[matrix_indexes[1], matrix_indexes[2]] <- runif(1, 0.4, 1) * sample(c(-1, 1), 1)
+      }
+      for (i in 1:p) {
+        # Note: In Carter's description there is no this `denominator > 0` if-statement.
+        # Without it, we could have the 0/0 situation.
+        denominator <- sum(abs(K_star[-i,i])) * 1.1
+        if (denominator > 0) {
+          K_star[-i,i] <- K_star[-i,i] / denominator
+        }
+      }
 
-  if (K_structure == "hub") {
-    K_star[1, 2:p] <- K_star[2:p, 1] <- -cor_modifier / sqrt(p)
-
-  } else if (K_structure == "line") {
-    stopifnot(cor_modifier < 1, p > 1)
-    for (i in 2:p) {
-      K_star[i-1, i] <- K_star[i, i-1] <- cor_modifier / (2 * cos(pi/(p+1))) # singular for cor_modifier = 1
-    }
-  }
+      K_star <- (K_star + t(K_star)) / 2
+    },
+    stop("Unknown K_structure")
+  )
 
   e_min <- min(eigen(K_star, symmetric = TRUE, only.values = TRUE)$values)
   stopifnot(e_min > 1e-8)
@@ -90,78 +114,26 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
 
 # best method table
 {
-  hub_methods <- c(
+  methods <- c(
     "pcglasso_C",
-    "pcglassoFast_Primal_C",
-    "pcglassoFast_Primal_C",
-    "pcglassoFast_Primal_C",
-    "pcglassoFast_Primal_I",
-    "pcglassoFast_Primal_I",
-    "pcglassoFast_Primal_C",
-    "pcglassoFast_Dual_C",
-    "pcglasso_C",
-    "pcglassoFast_Primal_I",
-    "pcglassoFast_Dual_C",
-    "pcglassoFast_Dual_C",
-    "pcglassoFast_Primal_I",
-    "pcglassoFast_Dual_I",
-    "pcglassoFast_Dual_I",
-    "pcglassoFast_Dual_C",
-    "pcglassoFast_Primal_I",
-    "pcglassoFast_Primal_C",
-    "pcglassoFast_Dual_C",
-    "pcglassoFast_Dual_I",
-    "pcglassoFast_Primal_C",
-    "pcglassoFast_Dual_I",
-    "pcglassoFast_Dual_I",
-    "pcglassoFast_Dual_I",
-    "pcglassoFast_Primal_C",
-    "pcglassoFast_Dual_I",
-    "pcglassoFast_Dual_C",
-    "pcglassoFast_Dual_C",
-    "pcglassoFast_Primal_C",
-    "pcglassoFast_Dual_I",
-    "pcglassoFast_Dual_I",
-    "pcglassoFast_Dual_I"
+    "pcglassoFast_Primal_C" # TODO: Do this list
   )
-  stopifnot(length(hub_methods) == 32)
-  grid_hub <- expand.grid(
-    p            = c(10, 50, 100, 150), # TODO: Add p = 200
-    cor_modifier = c(1.0, 0.9),
-    lambda       = c(0.1, 0.2),
-    alpha        = c(0.0, 0.5),
-    KEEP.OUT.ATTRS = FALSE,
-    stringsAsFactors = FALSE
-  )
-
-  grid_line <- expand.grid(
+  stopifnot(length(methods) == 2)
+  grid <- expand.grid(
     p            = c(10, 50, 100, 150, 200),
-    cor_modifier = c(0.8, 0.9),
     lambda       = c(0.1, 0.2),
     alpha        = c(0.0, 0.5),
+    K_structure  = c("hub_1", "hub_09", "AR2", "random"),
     KEEP.OUT.ATTRS = FALSE,
     stringsAsFactors = FALSE
   )
 
-  best_method_table <- rbind(
-    transform(grid_line,
-              K_structure = "line",
-              best_method = "pcglassoFast_Dual_I"),
-    transform(grid_hub,
-              K_structure = "hub",
-              best_method = hub_methods)
-  )
+  best_method_table <- transform(grid, best_method = methods)
 }
 
 get_best_method <- function(p, graph_structure, lambda, alpha, cor_mod = NULL) {
-  if (is.null(cor_mod)) {
-    cor_mod <- cor_modifier_map[[graph_structure]]
-  }
-  stopifnot(length(cor_mod) == 1)
-
   row_best <- best_method_table[
     best_method_table$p == p &
-      best_method_table$cor_modifier == cor_mod &
       best_method_table$lambda == lambda &
       best_method_table$alpha == alpha &
       best_method_table$K_structure == graph_structure,
@@ -177,8 +149,8 @@ get_best_method <- function(p, graph_structure, lambda, alpha, cor_mod = NULL) {
   "pcglassoFast_Dual_C"
 }
 
-get_best_value <- function(S, p, graph_structure, lambda, alpha, cor_mod = NULL) {
-  best_method <- get_best_method(p, graph_structure, lambda, alpha, cor_mod)
+get_best_value <- function(S, p, graph_structure, lambda, alpha) {
+  best_method <- get_best_method(p, graph_structure, lambda, alpha)
   value_after_optimization(
     S,
     substr(best_method, 1, nchar(best_method)-2), substr(best_method, nchar(best_method), nchar(best_method)),

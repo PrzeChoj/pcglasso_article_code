@@ -16,7 +16,7 @@ summary_path <- file.path(data_dir, sprintf("experiment_1_summary_M%d.csv", M))
 df_all <- read_csv(summary_path, show_col_types = FALSE)
 
 # expected columns
-expected_columns <- c("p", "cor_modifier", "lambda", "alpha", "K_structure", "solver", "starting_point", "tolerance", "time_trimmed_mean", "f_end")
+expected_columns <- c("p", "lambda", "alpha", "K_structure", "solver", "starting_point", "tolerance", "time_trimmed_mean", "f_end")
 stopifnot(all(expected_columns %in% names(df_all)))
 
 # labels used by plot
@@ -28,18 +28,18 @@ df_all <- df_all %>%
     init = starting_point
   )
 
-fmt_part_cor <- function(p, cor_modifier, K_structure) {
-  if (K_structure == "hub") {
-    sprintf("part_cor = -%.1f / sqrt(p)", cor_modifier)
-  } else if (K_structure == "line") {
-    sprintf("part_cor = %.1f * max", cor_modifier)
-  } else {
+fmt_part_cor <- function(K_structure) {
+  switch (K_structure,
+    "hub_1" = "part_cor = -1 / sqrt(p)",
+    "hub_09" = "part_cor = -0.9 / sqrt(p)",
+    "AR2" = "a",
+    "random" = "r",
     stop("Unknown K_structure: ", K_structure)
-  }
+  )
 }
 
 group_keys <- df_all %>%
-  distinct(p, cor_modifier, lambda, alpha, K_structure)
+  distinct(p, lambda, alpha, K_structure)
 
 for (i in seq_len(nrow(group_keys))) {
   info <- group_keys[i, ]
@@ -47,16 +47,15 @@ for (i in seq_len(nrow(group_keys))) {
   df <- df_all %>%
     filter(
       p == info$p,
-      cor_modifier == info$cor_modifier,
       lambda == info$lambda,
       alpha == info$alpha,
       K_structure == info$K_structure
     )
 
   # baseline best value
-  S <- instances[[info$K_structure]][[as.character(info$p)]][[as.character(info$cor_modifier)]]
-  if (is.null(S)) stop("Missing S for: ", K_structure, " p=", p, " cor=", cor_modifier)
-  best_value <- get_best_value(S, info$p, info$K_structure, info$lambda, info$alpha, info$cor_modifier)
+  S <- instances[[info$K_structure]][[as.character(info$p)]]
+  if (is.null(S)) stop("Missing S for: ", K_structure, " p=", p)
+  best_value <- get_best_value(S, info$p, info$K_structure, info$lambda, info$alpha)
 
   df <- df %>%
     mutate(value_shifted = value - best_value + 1e-12)
@@ -74,7 +73,7 @@ for (i in seq_len(nrow(group_keys))) {
       subtitle = sprintf(
         "p = %d   |   %s graph   |   %s   |   lambda = %.1f   |   alpha = %.1f",
         info$p, info$K_structure,
-        fmt_part_cor(info$p, info$cor_modifier, info$K_structure),
+        fmt_part_cor(info$K_structure),
         info$lambda, info$alpha
       ),
       x = "Time [s] (trimmed mean over M)",
@@ -82,11 +81,10 @@ for (i in seq_len(nrow(group_keys))) {
     )
 
   plot_file <- sprintf(
-    "%s/plot_%s_p%d_cor%s_lambda%s_alpha%s.pdf",
+    "%s/plot_%s_p%d_lambda%s_alpha%s.pdf",
     plot_dir,
     info$K_structure,
     info$p,
-    gsub("\\.", "_", as.character(info$cor_modifier)),
     gsub("\\.", "_", as.character(info$lambda)),
     gsub("\\.", "_", as.character(info$alpha))
   )

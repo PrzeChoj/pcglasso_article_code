@@ -5,7 +5,6 @@ load("./experiments/Appendix_A/experiment_1/res_data/instances.RData")
 
 run_one <- function(row) {
   p <- row$p
-  cor_modifier <- row$cor_modifier
   lambda <- row$lambda
   alpha <- row$alpha
   K_structure <- row$K_structure
@@ -13,8 +12,8 @@ run_one <- function(row) {
   starting_point <- row$starting_point
   tolerance <- row$tolerance
 
-  S <- instances[[K_structure]][[as.character(p)]][[as.character(cor_modifier)]]
-  if (is.null(S)) stop("Missing S for: ", K_structure, " p=", p, " cor=", cor_modifier)
+  S <- instances[[K_structure]][[as.character(p)]]
+  if (is.null(S)) stop("Missing S for: ", K_structure, " p=", p)
 
   if (solver == "pcglasso") {
     tolerance <- tolerance * pcglasso_tolerance_multiplier
