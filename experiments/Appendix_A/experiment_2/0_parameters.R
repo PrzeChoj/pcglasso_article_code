@@ -3,7 +3,7 @@ cor_modifier_map <- c(hub = 1, line = 0.9)
 lambda <- 0.1
 alpha <- 0
 graph_structure_vec <- c("hub", "line")
-solver_vec <- c("pcglasso_cpp", "pcglasso_fortran", "pcglasso")
+solver_vec <- c("pcglassoFast_Primal", "pcglassoFast_Dual", "pcglasso")
 starting_point_vec <- c("C", "I")
 tol_grid <- 10^((-2):(-10))
 tol_strict <- 1e-13

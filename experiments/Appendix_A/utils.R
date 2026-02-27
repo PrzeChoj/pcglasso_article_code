@@ -61,10 +61,6 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
     stop("Unknown start: ", start)
   )
 
-  if (solver == "pcglassoFast") { # TODO: Rename to "Dual"
-    solver <- "pcglasso_fortran"
-  }
-
   Sinv <- switch(
     solver,
     pcglasso = pcglasso(
@@ -72,17 +68,17 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
       Theta_start = starting_matrix,
       threshold   = tol
     ),
-    pcglasso_fortran = pcglassoFast(
+    pcglassoFast_Dual = pcglassoFast(
       S, lambda = lambda, alpha = alpha,
-      R = cov2cor(starting_matrix),
-      solver_R = "fortran",
+      R0 = cov2cor(starting_matrix),
+      solver_R = "Dual",
       tolerance = tol,
       max_iter = 10000
     )$Sinv,
-    pcglasso_cpp = pcglassoFast(
+    pcglassoFast_Primal = pcglassoFast(
       S, lambda = lambda, alpha = alpha,
-      R = cov2cor(starting_matrix),
-      solver_R = "cpp",
+      R0 = cov2cor(starting_matrix),
+      solver_R = "Primal",
       tolerance = tol,
       max_iter = 10000
     )$Sinv,
@@ -96,37 +92,37 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
 {
   hub_methods <- c(
     "pcglasso_C",
-    "pcglasso_cpp_C",
-    "pcglasso_cpp_C",
-    "pcglasso_cpp_C",
-    "pcglasso_cpp_I",
-    "pcglasso_cpp_I",
-    "pcglasso_cpp_C",
-    "pcglassoFast_C",
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Primal_I",
+    "pcglassoFast_Primal_I",
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Dual_C",
     "pcglasso_C",
-    "pcglasso_cpp_I",
-    "pcglassoFast_C",
-    "pcglassoFast_C",
-    "pcglasso_cpp_I",
-    "pcglassoFast_I",
-    "pcglassoFast_I",
-    "pcglassoFast_C",
-    "pcglasso_cpp_I",
-    "pcglasso_cpp_C",
-    "pcglassoFast_C",
-    "pcglassoFast_I",
-    "pcglasso_cpp_C",
-    "pcglassoFast_I",
-    "pcglassoFast_I",
-    "pcglassoFast_I",
-    "pcglasso_cpp_C",
-    "pcglassoFast_I",
-    "pcglassoFast_C",
-    "pcglassoFast_C",
-    "pcglasso_cpp_C",
-    "pcglassoFast_I",
-    "pcglassoFast_I",
-    "pcglassoFast_I"
+    "pcglassoFast_Primal_I",
+    "pcglassoFast_Dual_C",
+    "pcglassoFast_Dual_C",
+    "pcglassoFast_Primal_I",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_C",
+    "pcglassoFast_Primal_I",
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Dual_C",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_C",
+    "pcglassoFast_Dual_C",
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_I"
   )
   stopifnot(length(hub_methods) == 32)
   grid_hub <- expand.grid(
@@ -150,7 +146,7 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
   best_method_table <- rbind(
     transform(grid_line,
               K_structure = "line",
-              best_method = "pcglassoFast_I"),
+              best_method = "pcglassoFast_Dual_I"),
     transform(grid_hub,
               K_structure = "hub",
               best_method = hub_methods)
@@ -178,7 +174,7 @@ get_best_method <- function(p, graph_structure, lambda, alpha, cor_mod = NULL) {
   }
 
   warning("best_method not found or not unique")
-  "pcglassoFast_C"
+  "pcglassoFast_Dual_C"
 }
 
 get_best_value <- function(S, p, graph_structure, lambda, alpha, cor_mod = NULL) {

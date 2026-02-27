@@ -70,7 +70,7 @@ for (i in seq_len(nrow(group_keys))) {
     scale_y_log10() +
     expand_limits(x = 0) +
     labs(
-      title = "PCGLASSO vs PCGLASSOFast vs PCGLASSOcpp",
+      title = "PCGLASSO vs pcglassoFast Dual vs pcglassoFast Primal",
       subtitle = sprintf(
         "p = %d   |   %s graph   |   %s   |   lambda = %.1f   |   alpha = %.1f",
         info$p, info$K_structure,
