@@ -39,20 +39,28 @@ build_K_star <- function(p, K_structure = c("hub_1", "hub_09", "AR2", "random"))
       }
     },
     random = {
-      for (i in 1:(ceiling(3*p/2))) {
-        matrix_indexes <- sample(p, 2)
-        K_star[matrix_indexes[1], matrix_indexes[2]] <- runif(1, 0.4, 1) * sample(c(-1, 1), 1)
-      }
-      for (i in 1:p) {
-        # Note: In Carter's description there is no this `denominator > 0` if-statement.
-        # Without it, we could have the 0/0 situation.
-        denominator <- sum(abs(K_star[-i,i])) * 1.1
-        if (denominator > 0) {
-          K_star[-i,i] <- K_star[-i,i] / denominator
+      # Note: In Carter's description there is no this `denominator > 0` if-statement.
+      # Without it, we could have a singular K_star.
+      repeat {
+        for (i in 1:(ceiling(3*p/2))) {
+          matrix_indexes <- sample(p, 2)
+          K_star[matrix_indexes[1], matrix_indexes[2]] <- runif(1, 0.4, 1) * sample(c(-1, 1), 1)
+        }
+        for (i in 1:p) {
+          # Note: In Carter's description there is no this `denominator > 0` if-statement.
+          # Without it, we could have the 0/0 situation.
+          denominator <- sum(abs(K_star[-i,i])) * 1.1
+          if (denominator > 0) {
+            K_star[-i,i] <- K_star[-i,i] / denominator
+          }
+        }
+
+        K_star <- (K_star + t(K_star)) / 2
+
+        if (min(eigen(K_star, symmetric = TRUE, only.values = TRUE)$values) > 1e-8) {
+          break
         }
       }
-
-      K_star <- (K_star + t(K_star)) / 2
     },
     stop("Unknown K_structure")
   )
