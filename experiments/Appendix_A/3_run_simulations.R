@@ -5,10 +5,10 @@ library(pbmcapply)
 library(dplyr)
 library(readr)
 
-source("./experiments/Appendix_A/experiment_1/0_parameters.R")
-source("./experiments/Appendix_A/experiment_1/2_functions.R")
+source("./experiments/Appendix_A/0_parameters.R")
+source("./experiments/Appendix_A/2_functions.R")
 
-data_dir <- "./experiments/Appendix_A/experiment_1/res_data"
+data_dir <- "./experiments/Appendix_A/res_data"
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
 n_cores <- max(1, min(7, detectCores(logical = FALSE) - 1))
@@ -43,7 +43,7 @@ raw <- bind_rows(raw_list)
 end_time <- Sys.time()
 
 print(end_time - start_time)
-write_csv(raw, file.path(data_dir, sprintf("experiment_1_raw_M%d.csv", M)))
+write_csv(raw, file.path(data_dir, sprintf("raw_M%d.csv", M)))
 if (all(raw$status == "ok")) {
   message("Simulation Successful")
 } else {
@@ -79,4 +79,4 @@ if (all(abs(summary_data$f_end_worst - summary_data$f_end_best) < 1e-10)) {
 
 summary_data <- dplyr::select(summary_data, !starts_with("f_end_"))
 
-write_csv(summary_data, file.path(data_dir, sprintf("experiment_1_summary_M%d.csv", M)))
+write_csv(summary_data, file.path(data_dir, sprintf("summary_M%d.csv", M)))

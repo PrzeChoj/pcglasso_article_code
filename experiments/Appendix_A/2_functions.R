@@ -1,7 +1,7 @@
 source("./experiments/Appendix_A/utils.R")
-source("./experiments/Appendix_A/experiment_1/0_parameters.R")
+source("./experiments/Appendix_A/0_parameters.R")
 
-load("./experiments/Appendix_A/experiment_1/res_data/instances.RData")
+load("./experiments/Appendix_A/res_data/instances.RData")
 
 # For simulation:
 run_one <- function(row) {
@@ -124,7 +124,7 @@ save_plot_for_i <- function(i) {
     theme_bw(base_size = 14)
 
   plot_file <- sprintf(
-    "%s/plot_%s_p%d_lambda%s_alpha%s.png",
+    "%s/type_1/plot_%s_p%d_lambda%s_alpha%s.png",
     plot_dir,
     info$K_structure,
     info$p,

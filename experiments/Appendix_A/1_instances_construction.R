@@ -1,5 +1,5 @@
 source("./experiments/Appendix_A/utils.R")
-source("./experiments/Appendix_A/experiment_1/0_parameters.R")
+source("./experiments/Appendix_A/0_parameters.R")
 
 set.seed(1234)
 
@@ -16,4 +16,4 @@ for (graph_structure in graph_structure_vec) {
   instances[[graph_structure]] <- list_for_p
 }
 
-save(instances, file = "./experiments/Appendix_A/experiment_1/res_data/instances.RData")
+save(instances, file = "./experiments/Appendix_A/res_data/instances.RData")

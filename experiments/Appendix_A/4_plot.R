@@ -6,26 +6,26 @@ library(readr)
 library(future.apply)
 
 source("./experiments/Appendix_A/utils.R")
-source("./experiments/Appendix_A/experiment_1/0_parameters.R")
-source("./experiments/Appendix_A/experiment_1/2_functions.R")
+source("./experiments/Appendix_A/0_parameters.R")
+source("./experiments/Appendix_A/2_functions.R")
 
-load("./experiments/Appendix_A/experiment_1/res_data/instances.RData")
+load("./experiments/Appendix_A/res_data/instances.RData")
 
-data_dir <- "./experiments/Appendix_A/experiment_1/res_data"
-plot_dir <- "./experiments/Appendix_A/experiment_1/plots"
+data_dir <- "./experiments/Appendix_A/res_data"
+plot_dir <- "./experiments/Appendix_A/plots"
 dir.create(plot_dir, showWarnings = FALSE, recursive = TRUE)
 
 n_cores <- max(1, min(7, parallel::detectCores(logical = FALSE) - 1))
 
 # read summary
-summary_path <- file.path(data_dir, sprintf("experiment_1_summary_M%d.csv", M))
+summary_path <- file.path(data_dir, sprintf("summary_M%d.csv", M))
 df_all <- read_csv(summary_path, show_col_types = FALSE)
 # expected columns
 expected_columns <- c("p", "lambda", "alpha", "K_structure", "solver", "starting_point", "tolerance", "time_trimmed_mean", "f_end")
 stopifnot(all(expected_columns %in% names(df_all)))
 
 # read raw
-raw_path <- file.path(data_dir, sprintf("experiment_1_raw_M%d.csv", M))
+raw_path <- file.path(data_dir, sprintf("raw_M%d.csv", M))
 df_raw <- read_csv(raw_path, show_col_types = FALSE)
 # --- Validate df_raw ---
 if (any(df_raw$status != "ok")) stop("Simulation FAILED: non-ok status present")
@@ -193,7 +193,7 @@ for (k in seq_len(nrow(pairs))) {
   plt <- make_one_plot(df_sub, lam, alp)
 
   out_file <- file.path(
-    plot_dir,
+    plot_dir, "type_2",
     sprintf("mean_time_vs_p_lambda%s_alpha%s.png",
             gsub("\\.", "_", as.character(lam)),
             gsub("\\.", "_", as.character(alp)))
