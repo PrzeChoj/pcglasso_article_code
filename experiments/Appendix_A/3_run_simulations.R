@@ -6,12 +6,12 @@ library(dplyr)
 library(readr)
 
 source("./experiments/Appendix_A/0_parameters.R")
-source("./experiments/Appendix_A/2_functions.R")
+source("./experiments/Appendix_A/2_functions_simulations.R")
 
 data_dir <- "./experiments/Appendix_A/res_data"
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
-n_cores <- max(1, min(7, detectCores(logical = FALSE) - 1))
+n_cores <- max(1, detectCores(logical = FALSE) - 1)
 
 set.seed(1234)
 Sys.setenv(OMP_NUM_THREADS = 1)
@@ -21,7 +21,7 @@ param_grid <- expand.grid(
   p = p_vec,
   lambda = lambda_vec,
   alpha = alpha_vec,
-  K_structure = c("hub_1", "hub_09", "AR2", "random"),
+  K_structure = graph_structure_vec,
   solver = solver_vec,
   starting_point = starting_point_vec,
   tolerance = tolerance_list,
