@@ -36,6 +36,16 @@ run_one <- function(row) {
 }
 
 # For plotting:
+compute_best_value_for_i <- function(i) {
+  info <- group_keys[i, ]
+  message("Optimize for p = ", info$p, ", lambda = ", info$lambda, ", alpha = ", info$alpha, ", K_structure = ", info$K_structure)
+  S <- instances[[info$K_structure]][[as.character(info$p)]]
+  if (is.null(S)) {
+    stop("Missing S for: ", info$K_structure, " p=", info$p)
+  }
+  get_best_value(S, info$p, info$K_structure, info$lambda, info$alpha)
+}
+
 fmt_part_cor <- function(K_structure) {
   switch(K_structure,
     "hub_1" = "part_cor = -1 / sqrt(p)",
@@ -48,6 +58,11 @@ fmt_part_cor <- function(K_structure) {
 
 save_plot_for_i <- function(i) {
   info <- group_keys[i, ]
+
+  if (is.na(info$best_value) || !is.finite(info$best_value)) {
+    stop("Missing/invalid best_value for row i = ", i)
+  }
+
   df <- df_all %>%
     filter(
       p == info$p,
@@ -56,10 +71,8 @@ save_plot_for_i <- function(i) {
       K_structure == info$K_structure
     )
 
-  # shoft value based on baseline best value
-  S <- instances[[info$K_structure]][[as.character(info$p)]]
-  if (is.null(S)) stop("Missing S for: ", K_structure, " p=", p)
-  best_value <- get_best_value(S, info$p, info$K_structure, info$lambda, info$alpha)
+  # shift value based on precomputed best_value
+  best_value <- info$best_value
   df <- df %>%
     mutate(value_shifted = value - best_value)
   if (any(df$value_shifted <= 1e-12)) {
@@ -67,7 +80,7 @@ save_plot_for_i <- function(i) {
   }
   stopifnot(all(df$value_shifted > 0))
 
-  # make graph
+  # labels
   graph_label <- if (info$K_structure %in% c("hub_1", "hub_09")) {
     "Graph hub"
   } else {
@@ -88,6 +101,8 @@ save_plot_for_i <- function(i) {
     ),
     collapse = "   |   "
   )
+
+  # make graph
   plt <- ggplot(df, aes(x = time, y = value_shifted, color = alg, shape = init)) +
     geom_point(size = 4) +
     scale_shape_manual(values = c(C = 20, I = 8)) +
@@ -112,4 +127,6 @@ save_plot_for_i <- function(i) {
 
   ggsave(plot_file, plt, width = 9, height = 6, dpi = 150)
   message("Saved: ", plot_file)
+
+  NULL
 }

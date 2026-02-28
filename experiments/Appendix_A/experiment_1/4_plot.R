@@ -35,15 +35,24 @@ df_all <- df_all %>%
   )
 
 group_keys <- df_all %>%
-  distinct(p, lambda, alpha, K_structure)
+  distinct(p, lambda, alpha, K_structure) %>%
+  arrange(desc(p))
 
-
+# add the best_value to `group_keys`
 start_time <- Sys.time()
 plan(multisession, workers = n_cores)
-raw_list <- future_lapply(
+best_values <- future_sapply(
+  seq_len(nrow(group_keys)),
+  compute_best_value_for_i
+)
+group_keys$best_value <- as.numeric(best_values)
+stopifnot(all(is.finite(group_keys$best_value)))
+
+# make plots:
+invisible(future_lapply(
   seq_len(nrow(group_keys)),
   save_plot_for_i
-)
+))
 end_time <- Sys.time()
 
 message("Done.")
