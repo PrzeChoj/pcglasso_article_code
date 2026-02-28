@@ -124,9 +124,49 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
 {
   methods <- c(
     "pcglasso_C",
-    "pcglassoFast_Primal_C" # TODO: Do this list
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Primal_I",
+    "pcglassoFast_Primal_I",
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Primal_I",
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Dual_C",
+    "pcglassoFast_Dual_C",
+    "pcglassoFast_Dual_C",
+    "pcglassoFast_Primal_I",
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Dual_C",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Primal_I",
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Primal_C",
+    "pcglassoFast_Primal_I",
+    "pcglassoFast_Dual_C",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_C",
+    "pcglassoFast_Primal_I",
+    "pcglassoFast_Dual_C",
+    "pcglassoFast_Dual_C",
+    "pcglassoFast_Dual_C",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Primal_I",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_I",
+    "pcglassoFast_Dual_I",
+    rep("pcglassoFast_Dual_I", 20), # AR2
+    rep("pcglassoFast_Dual_I", 20) # random
   )
-  stopifnot(length(methods) == 2)
+  stopifnot(length(methods) == 80)
   grid <- expand.grid(
     p            = c(10, 50, 100, 150, 200),
     lambda       = c(0.1, 0.2),

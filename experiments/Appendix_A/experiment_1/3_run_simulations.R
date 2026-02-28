@@ -1,3 +1,5 @@
+# 5 hours of 89 cores of AMD EPYC Rome 7742
+
 library(parallel)
 library(pbmcapply)
 library(dplyr)

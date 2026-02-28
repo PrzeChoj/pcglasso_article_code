@@ -1,15 +1,21 @@
+# 1 minute of 7 cores of Apple's M2
+
 library(ggplot2)
 library(dplyr)
 library(readr)
+library(future.apply)
 
-source("./experiments/Appendix_A/experiment_1/0_parameters.R")
 source("./experiments/Appendix_A/utils.R")
+source("./experiments/Appendix_A/experiment_1/0_parameters.R")
+source("./experiments/Appendix_A/experiment_1/2_functions.R")
 
 load("./experiments/Appendix_A/experiment_1/res_data/instances.RData")
 
 data_dir <- "./experiments/Appendix_A/experiment_1/res_data"
 plot_dir <- "./experiments/Appendix_A/experiment_1/plots"
 dir.create(plot_dir, showWarnings = FALSE, recursive = TRUE)
+
+n_cores <- max(1, min(7, parallel::detectCores(logical = FALSE) - 1))
 
 # read summary
 summary_path <- file.path(data_dir, sprintf("experiment_1_summary_M%d.csv", M))
@@ -28,69 +34,17 @@ df_all <- df_all %>%
     init = starting_point
   )
 
-fmt_part_cor <- function(K_structure) {
-  switch (K_structure,
-    "hub_1" = "part_cor = -1 / sqrt(p)",
-    "hub_09" = "part_cor = -0.9 / sqrt(p)",
-    "AR2" = "a",
-    "random" = "r",
-    stop("Unknown K_structure: ", K_structure)
-  )
-}
-
 group_keys <- df_all %>%
   distinct(p, lambda, alpha, K_structure)
 
-for (i in seq_len(nrow(group_keys))) {
-  info <- group_keys[i, ]
 
-  df <- df_all %>%
-    filter(
-      p == info$p,
-      lambda == info$lambda,
-      alpha == info$alpha,
-      K_structure == info$K_structure
-    )
-
-  # baseline best value
-  S <- instances[[info$K_structure]][[as.character(info$p)]]
-  if (is.null(S)) stop("Missing S for: ", K_structure, " p=", p)
-  best_value <- get_best_value(S, info$p, info$K_structure, info$lambda, info$alpha)
-
-  df <- df %>%
-    mutate(value_shifted = value - best_value + 1e-12)
-
-  stopifnot(all(df$value_shifted > 0))
-
-  plt <- ggplot(df, aes(x = time, y = value_shifted, color = alg, shape = init)) +
-    geom_point(size = 4) +
-    scale_shape_manual(values = c(C = 20, I = 8)) +
-    theme_minimal(base_size = 14) +
-    scale_y_log10() +
-    expand_limits(x = 0) +
-    labs(
-      title = "PCGLASSO vs pcglassoFast Dual vs pcglassoFast Primal",
-      subtitle = sprintf(
-        "p = %d   |   %s graph   |   %s   |   lambda = %.1f   |   alpha = %.1f",
-        info$p, info$K_structure,
-        fmt_part_cor(info$K_structure),
-        info$lambda, info$alpha
-      ),
-      x = "Time [s] (trimmed mean over M)",
-      y = "Objective difference to best (log-scale)"
-    )
-
-  plot_file <- sprintf(
-    "%s/plot_%s_p%d_lambda%s_alpha%s.pdf",
-    plot_dir,
-    info$K_structure,
-    info$p,
-    gsub("\\.", "_", as.character(info$lambda)),
-    gsub("\\.", "_", as.character(info$alpha))
-  )
-
-  ggsave(plot_file, plt, width = 8, height = 6, dpi = 150)
-  message("Saved: ", plot_file)
-}
+start_time <- Sys.time()
+plan(multisession, workers = n_cores)
+raw_list <- future_lapply(
+  seq_len(nrow(group_keys)),
+  save_plot_for_i
+)
+end_time <- Sys.time()
 
 message("Done.")
+print(end_time - start_time)
