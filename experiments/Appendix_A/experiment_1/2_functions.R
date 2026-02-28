@@ -43,7 +43,14 @@ compute_best_value_for_i <- function(i) {
   if (is.null(S)) {
     stop("Missing S for: ", info$K_structure, " p=", info$p)
   }
-  get_best_value(S, info$p, info$K_structure, info$lambda, info$alpha)
+  best_value_calculated <- get_best_value(S, info$p, info$K_structure, info$lambda, info$alpha)
+
+  best_value_from_simulations <- df_raw %>%
+    filter(p == info$p, lambda == info$lambda, alpha == info$alpha, K_structure == info$K_structure) %>%
+    pull(f_end) %>%
+    min
+
+  min(best_value_calculated, best_value_from_simulations)
 }
 
 fmt_part_cor <- function(K_structure) {
