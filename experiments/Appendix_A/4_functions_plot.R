@@ -177,7 +177,7 @@ fmt_part_cor <- function(K_structure) {
   )
 }
 
-save_plot_for_i <- function(i) {
+prepare_plot_for_i <- function(i) {
   info <- group_keys[i, ]
 
   if (is.na(info$best_value) || !is.finite(info$best_value)) {
@@ -190,28 +190,12 @@ save_plot_for_i <- function(i) {
       lambda == info$lambda,
       alpha == info$alpha,
       K_structure == info$K_structure
-    )
+    ) %>%
+    mutate(value_shifted = pmax(value - info$best_value, 1e-10))
 
-  # shift value based on precomputed best_value
-  best_value <- info$best_value
-  df <- df %>%
-    mutate(value_shifted = value - best_value)
-  if (any(df$value_shifted <= 1e-12)) {
-    df$value_shifted <- df$value_shifted + 1e-10
-  }
-  stopifnot(all(df$value_shifted > 0))
+  graph_label <- if (info$K_structure %in% c("hub_1", "hub_09")) "Graph hub" else sprintf("Graph %s", info$K_structure)
+  part_cor_label <- if (info$K_structure %in% c("hub_1", "hub_09")) fmt_part_cor(info$K_structure) else NULL
 
-  # labels
-  graph_label <- if (info$K_structure %in% c("hub_1", "hub_09")) {
-    "Graph hub"
-  } else {
-    sprintf("Graph %s", info$K_structure)
-  }
-  part_cor_label <- if (info$K_structure %in% c("hub_1", "hub_09")) {
-    fmt_part_cor(info$K_structure)
-  } else {
-    NULL
-  }
   subtitle_txt <- paste(
     c(
       sprintf("p = %d", info$p),
@@ -223,20 +207,6 @@ save_plot_for_i <- function(i) {
     collapse = "   |   "
   )
 
-  # make graph
-  plt <- ggplot(df, aes(x = time, y = value_shifted, color = alg, shape = init)) +
-    geom_point(size = 4) +
-    scale_shape_manual(values = c(C = 20, I = 8)) +
-    scale_y_log10() +
-    expand_limits(x = 0) +
-    labs(
-      title = "PCGLASSO vs pcglassoFast Dual vs pcglassoFast Primal",
-      subtitle = subtitle_txt,
-      x = "Time [s]",
-      y = "Objective difference to best (log-scale)"
-    ) +
-    theme_bw(base_size = 14)
-
   plot_file <- sprintf(
     "%s/type_1/plot_%s_p%d_lambda%s_alpha%s.png",
     plot_dir,
@@ -246,8 +216,5 @@ save_plot_for_i <- function(i) {
     gsub("\\.", "_", as.character(info$alpha))
   )
 
-  ggsave(plot_file, plt, width = 9, height = 6, dpi = 150)
-  message("Saved: ", plot_file)
-
-  NULL
+  list(df = df, subtitle = subtitle_txt, file = plot_file)
 }

@@ -1,13 +1,13 @@
-# 1 minute of 7 cores of Apple's M2
+# 20 seconds
+
+start_time <- Sys.time()
 
 library(ggplot2)
-library(ggpattern)
 library(patchwork)
-library(tidyr)
 library(scales)
 library(dplyr)
 library(readr)
-library(future.apply)
+library(ragg)
 
 source("./experiments/Appendix_A/utils.R")
 source("./experiments/Appendix_A/0_parameters.R")
@@ -18,8 +18,8 @@ load("./experiments/Appendix_A/res_data/instances.RData")
 data_dir <- "./experiments/Appendix_A/res_data"
 plot_dir <- "./experiments/Appendix_A/plots"
 dir.create(plot_dir, showWarnings = FALSE, recursive = TRUE)
-
-n_cores <- max(1, parallel::detectCores(logical = FALSE) - 1)
+dir.create(file.path(plot_dir, "type_1"), showWarnings = FALSE, recursive = TRUE)
+dir.create(file.path(plot_dir, "type_2"), showWarnings = FALSE, recursive = TRUE)
 
 # read summary
 summary_path <- file.path(data_dir, sprintf("summary_M%d.csv", M))
@@ -46,27 +46,32 @@ df_all <- df_all %>%
     init = starting_point
   )
 
-group_keys <- df_all %>%
-  distinct(p, lambda, alpha, K_structure) %>%
-  arrange(desc(p))
-
-# add the best_value to `group_keys`
-start_time <- Sys.time()
-plan(multisession, workers = n_cores)
-best_values <- future_sapply(
-  seq_len(nrow(group_keys)),
-  compute_best_value_for_i
-)
-group_keys$best_value <- as.numeric(best_values)
-stopifnot(all(is.finite(group_keys$best_value)))
+group_keys_path <- file.path(data_dir, sprintf("group_keys_with_best_value_M%d.csv", M))
+group_keys <- read_csv(group_keys_path, show_col_types = FALSE)
+stopifnot(all(c("p","lambda","alpha","K_structure","best_value") %in% names(group_keys)))
 
 
 #####
 # make plots type 1:
-invisible(future_lapply(
-  seq_len(nrow(group_keys)),
-  save_plot_for_i
-))
+for (i in seq_len(nrow(group_keys))) {
+  x <- prepare_plot_for_i(i)
+
+  plt <- ggplot(x$df, aes(x = time, y = value_shifted, color = alg, shape = init)) +
+    geom_point(size = 4) +
+    scale_shape_manual(values = c(C = 20, I = 8)) +
+    scale_y_log10() +
+    expand_limits(x = 0) +
+    labs(
+      title = "PCGLASSO vs pcglassoFast Dual vs pcglassoFast Primal",
+      subtitle = x$subtitle,
+      x = "Time [s]",
+      y = "Objective difference to best (log-scale)"
+    ) +
+    theme_bw(base_size = 14)
+
+  ggsave(x$file, plt, device = ragg::agg_png, width = 9, height = 6, units = "in", dpi = 150)
+  message("Saved: ", x$file)
+}
 
 
 #####
