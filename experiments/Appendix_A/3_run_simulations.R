@@ -33,6 +33,9 @@ param_grid_M <- param_grid[rep(seq_len(nrow(param_grid)), each = M), , drop = FA
 param_grid_M$m <- rep(seq_len(M), times = nrow(param_grid))
 rownames(param_grid_M) <- NULL
 
+param_grid_M <- param_grid_M %>%
+  arrange(desc(p), desc(-log10(tolerance)))
+
 start_time <- Sys.time()
 raw_list <- pbmclapply(
   seq_len(nrow(param_grid_M)),
