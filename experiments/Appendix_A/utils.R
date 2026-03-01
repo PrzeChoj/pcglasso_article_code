@@ -42,7 +42,8 @@ build_K_star <- function(p, K_structure = c("hub_1", "hub_09", "AR2", "random"))
       # Note: In Carter's description there is no this `denominator > 0` if-statement.
       # Without it, we could have a singular K_star.
       repeat {
-        for (i in 1:(ceiling(3 * p / 2))) {
+        K_star <- diag(1, p)
+        while(sum(K_star - diag(1, p) != 0) < 3 * p / 2) {
           matrix_indexes <- sample(p, 2)
           K_star[matrix_indexes[1], matrix_indexes[2]] <- runif(1, 0.4, 1) * sample(c(-1, 1), 1)
         }
@@ -77,7 +78,7 @@ S_from_K_star <- function(K_star, n) {
 
   Z <- mvrnorm(n = n, mu = rep(0, p), Sigma = solve(K_star))
   S <- t(Z) %*% Z / n
-  S <- cov2cor(S)
+  S <- cov2cor(S) # as in Carter's description
 
   S
 }
