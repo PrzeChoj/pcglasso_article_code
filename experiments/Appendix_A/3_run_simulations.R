@@ -13,7 +13,7 @@ dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
 n_cores <- max(1, detectCores(logical = FALSE) - 1)
 
-set.seed(2026)
+set.seed(12345)
 Sys.setenv(OMP_NUM_THREADS = 1)
 
 

@@ -1,7 +1,7 @@
 source("./experiments/Appendix_A/utils.R")
 source("./experiments/Appendix_A/0_parameters.R")
 
-set.seed(2026)
+set.seed(12345)
 
 instances <- setNames(vector("list", length(graph_structure_vec)), graph_structure_vec)
 for (graph_structure in graph_structure_vec) {
