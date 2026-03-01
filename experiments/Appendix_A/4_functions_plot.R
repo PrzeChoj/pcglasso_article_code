@@ -222,6 +222,16 @@ fmt_part_cor <- function(K_structure) {
   )
 }
 
+K_val_to_title <- function(K_val) {
+  switch(K_val,
+    "hub_1" = "graph hub, partial correlation = -1 / sqrt(p)",
+    "hub_09" = "graph hub, partial correlation = -0.9 / sqrt(p)",
+    "AR2" = "graph AR2",
+    "random" = "graph random",
+    stop("Unknown K_structure: ", K_structure)
+  )
+}
+
 make_mean_time_vs_p_plot <- function(df_sub, K_val) {
   df_sub <- add_lam_alp_label(df_sub)
 
@@ -239,7 +249,8 @@ make_mean_time_vs_p_plot <- function(df_sub, K_val) {
     geom_point(size = 2.3) +
     facet_wrap(~lam_alp, ncol = 2, scales = "free_y") +
     labs(
-      title = sprintf("Mean time vs p (%s)", K_val),
+      title = "Time vs p",
+      subtitle = K_val_to_title(K_val),
       x = "p",
       y = "Mean time [s]",
       color = "solver",
@@ -280,7 +291,8 @@ make_violin_time_vs_p_plot <- function(df_sub, K_val) {
     scale_fill_manual(values = col_map) +
     scale_color_manual(values = col_map) +
     labs(
-      title = sprintf("Time vs p (%s)", as.character(K_val)),
+      title = "Time vs p",
+      subtitle = K_val_to_title(K_val),
       x = "p",
       y = "Time [s]",
       fill = "solver / start"
