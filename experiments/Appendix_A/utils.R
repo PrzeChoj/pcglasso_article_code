@@ -7,13 +7,13 @@ library(MASS)
 
 pcglasso_goal_function <- function(S, lambda, alpha, Sinv) {
   delta_matrix <- cov2cor(Sinv)
-  theta_diag   <- sqrt(diag(Sinv))
-  p            <- nrow(delta_matrix)
+  theta_diag <- sqrt(diag(Sinv))
+  p <- nrow(delta_matrix)
 
   theta_mat <- diag(theta_diag)
   log_det <- as.numeric(determinant(delta_matrix, logarithm = TRUE)$modulus)
   quad_term <- sum(diag(S %*% theta_mat %*% delta_matrix %*% theta_mat))
-  l1_pen    <- lambda * sum(abs(delta_matrix - diag(p)))
+  l1_pen <- lambda * sum(abs(delta_matrix - diag(p)))
 
   -log_det - 2 * (1 - alpha) * sum(log(theta_diag)) + quad_term + l1_pen
 }
@@ -22,7 +22,7 @@ build_K_star <- function(p, K_structure = c("hub_1", "hub_09", "AR2", "random"))
   K_structure <- match.arg(K_structure)
 
   K_star <- diag(1, p)
-  switch (K_structure,
+  switch(K_structure,
     hub_1 = {
       K_star[1, 2:p] <- K_star[2:p, 1] <- -1 / sqrt(p)
     },
@@ -32,26 +32,26 @@ build_K_star <- function(p, K_structure = c("hub_1", "hub_09", "AR2", "random"))
     AR2 = {
       stopifnot(p > 2)
       for (i in 2:p) {
-        K_star[i-1, i] <- K_star[i, i-1] <- 1/2
+        K_star[i - 1, i] <- K_star[i, i - 1] <- 1 / 2
       }
       for (i in 3:p) {
-        K_star[i-2, i] <- K_star[i, i-2] <- 1/4
+        K_star[i - 2, i] <- K_star[i, i - 2] <- 1 / 4
       }
     },
     random = {
       # Note: In Carter's description there is no this `denominator > 0` if-statement.
       # Without it, we could have a singular K_star.
       repeat {
-        for (i in 1:(ceiling(3*p/2))) {
+        for (i in 1:(ceiling(3 * p / 2))) {
           matrix_indexes <- sample(p, 2)
           K_star[matrix_indexes[1], matrix_indexes[2]] <- runif(1, 0.4, 1) * sample(c(-1, 1), 1)
         }
         for (i in 1:p) {
           # Note: In Carter's description there is no this `denominator > 0` if-statement.
           # Without it, we could have the 0/0 situation.
-          denominator <- sum(abs(K_star[-i,i])) * 1.1
+          denominator <- sum(abs(K_star[-i, i])) * 1.1
           if (denominator > 0) {
-            K_star[-i,i] <- K_star[-i,i] / denominator
+            K_star[-i, i] <- K_star[-i, i] / denominator
           }
         }
 
@@ -86,29 +86,29 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
   p <- nrow(S)
   c_parameter <- 1 - alpha
 
-  starting_matrix <- switch(
-    start,
+  starting_matrix <- switch(start,
     I = diag(p),
     C = solve(S),
     stop("Unknown start: ", start)
   )
 
-  Sinv <- switch(
-    solver,
+  Sinv <- switch(solver,
     pcglasso = pcglasso(
       S, lambda, c_parameter,
       Theta_start = starting_matrix,
-      threshold   = tol
+      threshold = tol
     ),
     pcglassoFast_Dual = pcglassoFast(
-      S, lambda = lambda, alpha = alpha,
+      S,
+      lambda = lambda, alpha = alpha,
       R0 = cov2cor(starting_matrix),
       solver_R = "Dual",
       tolerance = tol,
       max_iter = 10000
     )$Sinv,
     pcglassoFast_Primal = pcglassoFast(
-      S, lambda = lambda, alpha = alpha,
+      S,
+      lambda = lambda, alpha = alpha,
       R0 = cov2cor(starting_matrix),
       solver_R = "Primal",
       tolerance = tol,
@@ -168,10 +168,10 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
   )
   stopifnot(length(methods) == 80)
   grid <- expand.grid(
-    p            = c(10, 50, 100, 150, 200),
-    lambda       = c(0.1, 0.2),
-    alpha        = c(0.0, 0.5),
-    K_structure  = c("hub_1", "hub_09", "AR2", "random"),
+    p = c(10, 50, 100, 150, 200),
+    lambda = c(0.1, 0.2),
+    alpha = c(0.0, 0.5),
+    K_structure = c("hub_1", "hub_09", "AR2", "random"),
     KEEP.OUT.ATTRS = FALSE,
     stringsAsFactors = FALSE
   )
@@ -184,8 +184,7 @@ get_best_method <- function(p, graph_structure, lambda, alpha, cor_mod = NULL) {
     best_method_table$p == p &
       best_method_table$lambda == lambda &
       best_method_table$alpha == alpha &
-      best_method_table$K_structure == graph_structure,
-    ,
+      best_method_table$K_structure == graph_structure, ,
     drop = FALSE
   ]
 
@@ -201,7 +200,7 @@ get_best_value <- function(S, p, graph_structure, lambda, alpha) {
   best_method <- get_best_method(p, graph_structure, lambda, alpha)
   value_after_optimization(
     S,
-    substr(best_method, 1, nchar(best_method)-2), substr(best_method, nchar(best_method), nchar(best_method)),
+    substr(best_method, 1, nchar(best_method) - 2), substr(best_method, nchar(best_method), nchar(best_method)),
     1e-13, lambda, alpha
   )
 }

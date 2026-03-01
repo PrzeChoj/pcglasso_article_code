@@ -37,7 +37,6 @@ if (anyNA(df_raw$time) || anyNA(df_raw$f_end)) stop("Simulation FAILED: NA in ti
 df_raw <- dplyr::select(df_raw, -c("m", "status", "error"))
 
 
-# labels used by plot
 df_all <- df_all %>%
   mutate(
     time = time_trimmed_mean,
@@ -48,13 +47,13 @@ df_all <- df_all %>%
 
 group_keys_path <- file.path(data_dir, sprintf("group_keys_with_best_value_M%d.csv", M))
 group_keys <- read_csv(group_keys_path, show_col_types = FALSE)
-stopifnot(all(c("p","lambda","alpha","K_structure","best_value") %in% names(group_keys)))
+stopifnot(all(c("p", "lambda", "alpha", "K_structure", "best_value") %in% names(group_keys)))
 
 
 #####
 # make plots type 1:
 for (i in seq_len(nrow(group_keys))) {
-  x <- prepare_plot_for_i(i)
+  x <- prepare_data_for_plot_type_1(i)
 
   plt <- ggplot(x$df, aes(x = time, y = value_shifted, color = alg, shape = init)) +
     geom_point(size = 4) +
@@ -77,41 +76,10 @@ for (i in seq_len(nrow(group_keys))) {
 #####
 # plots type 2
 thr_f_diff_to_best <- 1e-5
-df_type_2_list <- prepare_type2(df_raw, group_keys, thr_f_diff_to_best, M)
+df_type_2_list <- prepare_data_for_plot_type_2(df_raw, group_keys, thr_f_diff_to_best, M)
 
 df_raw_filtered <- df_type_2_list$df_raw_filtered
 df_mean_time <- df_type_2_list$df_mean_time
-
-make_mean_time_vs_p_plot <- function(df_sub, K_val) {
-  df_sub <- add_lam_alp_label(df_sub)
-
-  ggplot(
-    df_sub,
-    aes(
-      x = p,
-      y = mean_time,
-      color = solver,
-      linetype = starting_point,
-      group = interaction(solver, starting_point)
-    )
-  ) +
-    geom_line(linewidth = 0.9) +
-    geom_point(size = 2.3) +
-    facet_wrap(~ lam_alp, ncol = 2, scales = "free_y") +
-    labs(
-      title = sprintf("Mean time vs p (%s)", K_val),
-      x = "p",
-      y = "Mean time [s]",
-      color = "solver",
-      linetype = "start"
-    ) +
-    theme_bw(base_size = 14) +
-    theme(
-      legend.position = "right",
-      strip.background = element_rect(fill = "grey92"),
-      panel.grid.minor = element_blank()
-    )
-}
 
 K_vals <- unique(df_mean_time$K_structure)
 
@@ -138,50 +106,6 @@ sol_order_2x3 <- c(
   "pcglasso / I", "pcglassoFast_Dual / I", "pcglassoFast_Primal / I"
 )
 
-make_violin_time_vs_p_plot <- function(df_sub, K_val) {
-  df_sub <- add_lam_alp_label(df_sub) %>%
-    mutate(
-      sol_start = factor(interaction(solver, starting_point, sep = " / "), levels = sol_order)
-    )
-
-  sol_levels <- levels(df_sub$solver)
-  base_cols <- setNames(hue_pal()(length(sol_levels)), sol_levels)
-  bright_cols <- setNames(brighten(base_cols, amount = 0.45), sol_levels)
-
-  col_map <- c(
-    setNames(base_cols,  paste0(sol_levels, " / C")),
-    setNames(bright_cols, paste0(sol_levels, " / I"))
-  )
-
-  plt_main <- ggplot(df_sub, aes(x = p, y = time, fill = sol_start, col = sol_start)) +
-    geom_violin(
-      position = position_dodge(width = 0.85),
-      trim = TRUE,
-      scale = "width",
-      linewidth = 0.25
-    ) +
-    facet_wrap(~ lam_alp, ncol = 2) +
-    scale_y_log10(labels = label_number()) +
-    scale_fill_manual(values = col_map) +
-    scale_color_manual(values = col_map) +
-    labs(
-      title = sprintf("Time vs p (%s)", as.character(K_val)),
-      x = "p",
-      y = "Time [s]",
-      fill = "solver / start"
-    ) +
-    theme_bw(base_size = 14) +
-    theme(
-      legend.position = "none",
-      panel.grid.minor = element_blank(),
-      strip.background = element_rect(fill = "grey92")
-    )
-
-  my_legend <- make_matrix_legend()
-
-  plt_main + my_legend + plot_layout(widths = c(4.7, 1))
-}
-
 K_vals <- unique(df_raw_filtered$K_structure)
 
 for (K_val in K_vals) {
@@ -196,7 +120,6 @@ for (K_val in K_vals) {
   ggsave(out_file, plt, width = 12, height = 7, dpi = 150)
   message("Saved: ", out_file)
 }
-
 
 end_time <- Sys.time()
 message("Done.")
