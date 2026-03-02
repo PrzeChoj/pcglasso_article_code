@@ -1,4 +1,4 @@
-# 20 seconds
+# 15 seconds
 
 start_time <- Sys.time()
 

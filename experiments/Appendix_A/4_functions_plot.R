@@ -247,7 +247,8 @@ make_mean_time_vs_p_plot <- function(df_sub, K_val) {
   ) +
     geom_line(linewidth = 0.9) +
     geom_point(size = 2.3) +
-    facet_wrap(~lam_alp, ncol = 2, scales = "free_y") +
+    facet_wrap(~lam_alp, ncol = 2) +
+    scale_y_log10(labels = label_number()) +
     labs(
       title = "Time vs p",
       subtitle = K_val_to_title(K_val),
