@@ -16,4 +16,6 @@ for (graph_structure in graph_structure_vec) {
   instances[[graph_structure]] <- list_for_p
 }
 
-save(instances, file = "./experiments/Appendix_A/res_data/instances.RData")
+path <- "./experiments/Appendix_A/res_data"
+dir.create(path, showWarnings = FALSE, recursive = TRUE)
+save(instances, file = file.path(path, "instances.RData"))
