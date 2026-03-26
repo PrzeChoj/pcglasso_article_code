@@ -14,7 +14,7 @@ Interpretation:
 - `random`: random graph
 
 ### Dimensions
-- `p in {10, 50, 100, 150, 200}`
+- `p in {50, 100, 150, 200}`
 
 ### Data generation
 For each pair `(K_structure, p)`:
@@ -127,11 +127,8 @@ Save all raw runs into one file:
 From the raw file, aggregate over repetitions separately for each:
 - `(p, lambda, alpha, K_structure, solver, starting_point, tolerance)`
 
-Use:
-- `trim = 0.1`
-
 Compute:
-- `time_trimmed_mean = mean(time, trim = 0.1)`
+- `time_median = median(time)`
 - `f_end = mean(f_end)`
 
 For `f_end`, this averaging is only a formal aggregation step. In the simulation output, for each fixed
@@ -175,7 +172,7 @@ Using `summary_M100.csv` and `group_keys_with_best_value_M100.csv`, for each:
 construct a scatter plot over all solvers, starting points, and tolerances.
 
 For each row define:
-- `time = time_trimmed_mean`
+- `time = time_median`
 - `value = f_end`
 - `value_shifted = pmax(value - best_value, 1e-10)`
 
@@ -208,19 +205,19 @@ Then keep only runs with:
 - `tolerance == tol_found`
 
 From these filtered runs:
-- compute trimmed mean runtime across repetitions
+- compute median runtime across repetitions
 
 This produces one runtime summary per:
 - `(p, lambda, alpha, K_structure, solver, starting_point)`
 
-### Type 2a - Mean time vs p
+### Type 2a - Median time vs p
 For each graph structure:
-- create faceted line plots of `mean_time` vs `p`
+- create faceted line plots of `median_time` vs `p`
 - facets correspond to `(lambda, alpha)`
 - separate curves for algorithm and starting point
 
 Save:
-- `./experiments/Appendix_A/plots/type_2/mean_time_vs_p_{K_structure}.png`
+- `./experiments/Appendix_A/plots/type_2/median_time_vs_p_{K_structure}.png`
 
 ### Type 2b - Violin plots
 For each graph structure:
@@ -245,4 +242,4 @@ The experiment produces:
 
 ### Plots
 - type 1: one scatter plot per `(p, lambda, alpha, K_structure)`
-- type 2: one mean-time plot and one violin plot per `K_structure`
+- type 2: one median-time plot and one violin plot per `K_structure`

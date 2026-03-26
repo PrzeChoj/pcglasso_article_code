@@ -25,7 +25,7 @@ dir.create(file.path(plot_dir, "type_2"), showWarnings = FALSE, recursive = TRUE
 summary_path <- file.path(data_dir, sprintf("summary_M%d.csv", M))
 df_all <- read_csv(summary_path, show_col_types = FALSE)
 # expected columns
-expected_columns <- c("p", "lambda", "alpha", "K_structure", "solver", "starting_point", "tolerance", "time_trimmed_mean", "f_end")
+expected_columns <- c("p", "lambda", "alpha", "K_structure", "solver", "starting_point", "tolerance", "time_median", "f_end")
 stopifnot(all(expected_columns %in% names(df_all)))
 
 # read raw
@@ -39,7 +39,7 @@ df_raw <- dplyr::select(df_raw, -c("m", "status", "error"))
 
 df_all <- df_all %>%
   mutate(
-    time = time_trimmed_mean,
+    time = time_median,
     value = f_end,
     alg = solver,
     init = starting_point
@@ -79,17 +79,17 @@ thr_f_diff_to_best <- 1e-5
 df_type_2_list <- prepare_data_for_plot_type_2(df_raw, group_keys, thr_f_diff_to_best, M)
 
 df_raw_filtered <- df_type_2_list$df_raw_filtered
-df_mean_time <- df_type_2_list$df_mean_time
+df_median_time <- df_type_2_list$df_median_time
 
-K_vals <- unique(df_mean_time$K_structure)
+K_vals <- unique(df_median_time$K_structure)
 
 for (K_val in K_vals) {
-  df_sub <- df_mean_time %>% filter(K_structure == K_val)
-  plt <- make_mean_time_vs_p_plot(df_sub, K_val)
+  df_sub <- df_median_time %>% filter(K_structure == K_val)
+  plt <- make_median_time_vs_p_plot(df_sub, K_val)
 
   out_file <- file.path(
     plot_dir, "type_2",
-    sprintf("mean_time_vs_p_%s.png", as.character(K_val))
+    sprintf("median_time_vs_p_%s.png", as.character(K_val))
   )
 
   ggsave(out_file, plt, width = 12, height = 6, dpi = 150)

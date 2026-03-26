@@ -173,11 +173,10 @@ prepare_data_for_plot_type_2 <- function(df_raw, group_keys, thr, M) {
       M
   ))
 
-  trim <- if (M >= 10) { 0.1 } else { 0 }
-  df_mean_time <- df_raw_filtered %>%
+  df_median_time <- df_raw_filtered %>%
     group_by(p, lambda, alpha, K_structure, solver, starting_point) %>%
     summarise(
-      mean_time = mean(time, trim = trim),
+      median_time = median(time),
       .groups = "drop"
     ) %>%
     mutate(
@@ -191,7 +190,7 @@ prepare_data_for_plot_type_2 <- function(df_raw, group_keys, thr, M) {
 
   list(
     df_raw_filtered = df_raw_filtered,
-    df_mean_time = df_mean_time
+    df_median_time = df_median_time
   )
 }
 
@@ -232,14 +231,14 @@ K_val_to_title <- function(K_val) {
   )
 }
 
-make_mean_time_vs_p_plot <- function(df_sub, K_val) {
+make_median_time_vs_p_plot <- function(df_sub, K_val) {
   df_sub <- add_lam_alp_label(df_sub)
 
   ggplot(
     df_sub,
     aes(
       x = p,
-      y = mean_time,
+      y = median_time,
       color = solver,
       linetype = starting_point,
       group = interaction(solver, starting_point)
@@ -252,7 +251,7 @@ make_mean_time_vs_p_plot <- function(df_sub, K_val) {
       title = "Time vs p",
       subtitle = K_val_to_title(K_val),
       x = "p",
-      y = "Mean time [s]",
+      y = "Median time [s]",
       color = "solver",
       linetype = "start"
     ) +
@@ -282,7 +281,6 @@ make_violin_time_vs_p_plot <- function(df_sub, K_val) {
   plt_main <- ggplot(df_sub, aes(x = p, y = time, fill = sol_start, col = sol_start)) +
     geom_violin(
       position = position_dodge(width = 0.85),
-      trim = TRUE,
       scale = "width",
       linewidth = 0.25
     ) +

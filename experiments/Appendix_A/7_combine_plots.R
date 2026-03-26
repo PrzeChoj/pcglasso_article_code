@@ -27,7 +27,7 @@ df_all <- read_csv(summary_path, show_col_types = FALSE)
 
 expected_columns <- c(
   "p", "lambda", "alpha", "K_structure", "solver", "starting_point",
-  "tolerance", "time_trimmed_mean", "f_end"
+  "tolerance", "time_median", "f_end"
 )
 stopifnot(all(expected_columns %in% names(df_all)))
 
@@ -41,7 +41,7 @@ df_raw <- dplyr::select(df_raw, -c("m", "status", "error")) %>%
 
 df_all <- df_all %>%
   mutate(
-    time = time_trimmed_mean,
+    time = time_median,
     value = f_end,
     alg = solver,
     init = starting_point
@@ -97,7 +97,7 @@ make_type_1_single_plot <- function(i) {
 }
 
 make_type_2_single_plot <- function(df_sub, K_val) {
-  make_mean_time_vs_p_plot(df_sub, K_val) +
+  make_median_time_vs_p_plot(df_sub, K_val) +
     labs(
       title = graph_label(K_val),
       subtitle = NULL,
@@ -111,16 +111,16 @@ make_type_2_single_plot <- function(df_sub, K_val) {
 }
 
 # ------------------------------------------------------------------
-# Combined figure 1: mean_time_vs_p
+# Combined figure 1: median_time_vs_p
 # ------------------------------------------------------------------
 
 df_type_2_list <- prepare_data_for_plot_type_2(df_raw, group_keys, thr_f_diff_to_best, M)
 
 df_raw_filtered <- df_type_2_list$df_raw_filtered
-df_mean_time <- df_type_2_list$df_mean_time
+df_median_time <- df_type_2_list$df_median_time
 
 plots_type_2 <- lapply(selected_graphs, function(K_val) {
-  df_sub <- df_mean_time %>% filter(K_structure == K_val)
+  df_sub <- df_median_time %>% filter(K_structure == K_val)
   make_type_2_single_plot(df_sub, K_val)
 })
 
@@ -128,7 +128,7 @@ combined_type_2 <- wrap_plots(plots_type_2, ncol = 2, guides = "collect") &
   theme(legend.position = "bottom")
 
 ggsave(
-  filename = file.path(out_dir, "Appendix_A_mean_time_vs_p.png"),
+  filename = file.path(out_dir, "Appendix_A_median_time_vs_p.png"),
   plot = combined_type_2,
   device = ragg::agg_png,
   width = 12,
@@ -137,7 +137,7 @@ ggsave(
   dpi = 150
 )
 
-message("Saved: ", file.path(out_dir, "Appendix_A_mean_time_vs_p.png"))
+message("Saved: ", file.path(out_dir, "Appendix_A_median_time_vs_p.png"))
 
 # ------------------------------------------------------------------
 # Combined figure 2: selected type_1 plots

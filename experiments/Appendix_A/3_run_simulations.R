@@ -62,12 +62,10 @@ if (nrow(raw) != nrow(param_grid_M) ||
 }
 
 # summary
-trim <- if (M >= 10) 0.1 else 0
-
 summary_data <- raw %>%
   group_by(p, lambda, alpha, K_structure, solver, starting_point, tolerance) %>%
   summarize(
-    time_trimmed_mean = mean(time, trim = trim),
+    time_median = median(time),
     f_end_best = min(f_end),
     f_end_worst = max(f_end),
     f_end = mean(f_end),
