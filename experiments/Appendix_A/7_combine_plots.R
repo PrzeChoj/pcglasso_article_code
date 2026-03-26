@@ -84,7 +84,7 @@ make_type_1_single_plot <- function(i) {
     expand_limits(x = 0) +
     labs(
       title = graph_label(x$df$K_structure[1]),
-      x = "Time [s]",
+      x = "Median Time [s]",
       y = "Objective difference to best (log-scale)",
       color = "Algorithm",
       shape = "Init"

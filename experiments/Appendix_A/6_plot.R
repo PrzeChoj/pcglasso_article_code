@@ -63,7 +63,7 @@ for (i in seq_len(nrow(group_keys))) {
     labs(
       title = "PCGLASSO vs pcglassoFast Dual vs pcglassoFast Primal",
       subtitle = x$subtitle,
-      x = "Time [s]",
+      x = "Median Time [s]",
       y = "Objective difference to best (log-scale)"
     ) +
     theme_bw(base_size = 14)
