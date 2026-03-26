@@ -1,4 +1,4 @@
-# 1 minute of 7 cores of Apple's M2
+# 1 minute of 7 cores of Apple M2
 
 library(dplyr)
 library(readr)
