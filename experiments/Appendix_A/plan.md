@@ -87,7 +87,7 @@ Generate and save one input matrix `S` for each `(K_structure, p)` pair.
 
 For each:
 - `K_structure in {hub_1, hub_09, AR2, random}`
-- `p in {10, 50, 100, 150, 200}`
+- `p in {50, 100, 150, 200}`
 
 do:
 1. set `n = 2p`
@@ -133,9 +133,8 @@ Compute:
 
 For `f_end`, this averaging is only a formal aggregation step. In the simulation output, for each fixed
 `(p, lambda, alpha, K_structure, solver, starting_point, tolerance)`, all `M = 100` values of `f_end`
-were numerically the same up to about 24 significant digits, which matches the intended deterministic
-behavior of the solvers on a fixed input matrix `S`. Therefore, `mean(f_end)` is effectively identical
-to each individual replicated value.
+were the same, which matches the intended deterministic behavior of the solvers on a fixed input matrix `S`.
+Therefore, `mean(f_end)` is effectively identical to each individual replicated value.
 
 and save the summary to:
 - `./experiments/Appendix_A/res_data/summary_M100.csv`
@@ -148,7 +147,7 @@ Thus the summary file contains one row per:
 ## Step 4 - Compute benchmark best values
 
 For each:
-- `(p, lambda, alpha, K_structure)`
+- `(p, K_structure, lambda, alpha)`
 
 compute a reference `best_value`.
 
@@ -167,7 +166,7 @@ Save the resulting table in:
 ## Step 5 - Plot type 1: time vs objective gap
 
 Using `summary_M100.csv` and `group_keys_with_best_value_M100.csv`, for each:
-- `(p, lambda, alpha, K_structure)`
+- `(p, K_structure, lambda, alpha)`
 
 construct a scatter plot over all solvers, starting points, and tolerances.
 
@@ -185,6 +184,8 @@ Plot:
 Save one PNG per configuration:
 - `./experiments/Appendix_A/plots/type_1/plot_{K_structure}_p{p}_lambda{lambda}_alpha{alpha}.png`
 
+This results in 64 plots.
+
 ---
 
 ## Step 6 - Plot type 2: tolerance needed to reach near-best objective
@@ -193,9 +194,9 @@ Define threshold:
 - `thr_f_diff_to_best = 1e-5`
 
 Using raw results, for each:
-- `(p, lambda, alpha, K_structure, solver, starting_point)`
+- `(p, K_structure, lambda, alpha, solver, starting_point)`
 
-find the largest tolerance such that:
+find the largest tolerance from `tolerance_list`, such that:
 - `f_end - best_value < 1e-5`
 
 Call this:
@@ -208,7 +209,7 @@ From these filtered runs:
 - compute median runtime across repetitions
 
 This produces one runtime summary per:
-- `(p, lambda, alpha, K_structure, solver, starting_point)`
+- `(p, K_structure, lambda, alpha, solver, starting_point)`
 
 ### Type 2a - Median time vs p
 For each graph structure:
@@ -241,5 +242,5 @@ The experiment produces:
 - `group_keys_with_best_value_M100.csv`
 
 ### Plots
-- type 1: one scatter plot per `(p, lambda, alpha, K_structure)`
+- type 1: one scatter plot per `(p, K_structure, lambda, alpha)`
 - type 2: one median-time plot and one violin plot per `K_structure`
