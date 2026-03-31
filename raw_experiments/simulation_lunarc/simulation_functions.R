@@ -1,14 +1,49 @@
 library(parallel)
-library(pbmcapply)
-library(space)
-source('estimation_methods.R')
+
+
+select_ns_part <- function(ns, part = NULL, n_parts = NULL) {
+  if (is.null(part)) {
+    return(ns)
+  }
+  if (is.null(n_parts)) {
+    stop("If 'part' is provided, 'n_parts' must also be provided.")
+  }
+  part <- as.integer(part)
+  n_parts <- as.integer(n_parts)
+  if (is.na(part) || is.na(n_parts) || part < 1 || n_parts < 1) {
+    stop("'part' and 'n_parts' must be positive integers.")
+  }
+  idx <- split(seq_along(ns), cut(seq_along(ns), breaks = n_parts, labels = FALSE))
+  if (part > length(idx) || length(idx[[part]]) == 0) {
+    stop("Requested part has no entries in 'ns'.")
+  }
+  ns[idx[[part]]]
+}
+
+solver_from_method <- function(method) {
+  if (is.na(method) || is.null(method)) {
+    return(NA_character_)
+  }
+  m <- tolower(method)
+  if (grepl("cpp", m)) {
+    return("cpp")
+  }
+  if (grepl("for", m)) {
+    return("fortran")
+  }
+  NA_character_
+}
 
 run_single <- function(Q, n, split_train = 0.7,
                        alpha_grid = sort(unique(c(seq(-0.1, 0.1, length.out = 10), 0))),
-                       nlambda = 100, lambda.min.ratio = 0.01,
+                       nlambda = 100, lambda.min.ratio = 0.01, pcglasso_tolerance = 0.001,
                        estimators = NULL,
-                       verbose=F) {
+                       collect_errors = FALSE,
+                       seed = NA_character_,
+                       iter = NA_integer_,
+                       rep = NA_integer_) {
   p <- ncol(Q)
+  pcglasso_tolerance <- 200*pcglasso_tolerance/n
   L <- Cholesky(Matrix(forceSymmetric(Q), sparse = TRUE), LDL = FALSE, perm = TRUE)
   z <- matrix(rnorm(n * p), nrow = p, ncol = n)
   x <- solve(L, solve(L, z, system = "P"), system = "Lt")
@@ -31,48 +66,179 @@ run_single <- function(Q, n, split_train = 0.7,
   # Default: PC-GLasso, Glasso, CorGL, SPACE
   if (is.null(estimators)) {
     estimators <- list(
-      PCGL = estimator_pcglasso,
-      GL   = estimator_glasso,
-      CGL  = estimator_corglasso,
-      SPACE = estimator_space
+      PCGLcpp_I = estimator_pcglasso_I_cpp,
+      PCGLFor_C = estimator_pcglasso_C_fortran,
+      PCGLFor_I = estimator_pcglasso_I_fortran,
+      PCGLcpp_C = estimator_pcglasso_C_cpp,
+      PCGLcart_C = estimator_pcglasso_C_Carter,
+      PCGLcart_I = estimator_pcglasso_I_Carter,
+      GL        = estimator_glasso,
+      CGL       = estimator_corglasso,
+      SPACE     = estimator_space
     )
   }
 
   res_list <- list()
+  errors <- list()
+  add_error <- function(stage, method, selector, err) {
+    if (!collect_errors) {
+      return(invisible(NULL))
+    }
+    errors[[length(errors) + 1]] <<- data.frame(
+      iter = iter,
+      n = n,
+      rep = rep,
+      method = method,
+      selector = selector,
+      solver = solver_from_method(method),
+      seed = seed,
+      stage = stage,
+      error = conditionMessage(err),
+      stringsAsFactors = FALSE
+    )
+    invisible(NULL)
+  }
   for (meth in names(estimators)) {
-    if(verbose) cat("Running method:", meth, "\n")
-    est <- estimators[[meth]](S_full, S_train, S_test, n, n_train, n_test, lambdas, alpha_grid=alpha_grid, data=data, train=train, test=test)
+    est <- tryCatch(
+      estimators[[meth]](
+        S_full, S_train, S_test, n, n_train, n_test,
+        lambdas, alpha_grid = alpha_grid, data = data, train = train, test = test,
+        pcglasso_tolerance = pcglasso_tolerance
+      ),
+      error = function(e) {
+        add_error("estimator", meth, NA_character_, e)
+        NULL
+      }
+    )
+    if (is.null(est)) {
+      next
+    }
     for (sel in names(est)) {
       sel_name <- paste0(meth, "_", gsub(".*_", "", sel)) # eg "GL_bic"
-      Qhat <- est[[sel]]$Q
-      time <- est[[sel]]$timing
-      cmp  <- compare_matrices(Q, Qhat)
-      cmp$method <- sel_name
-      cmp$timing <- time
-      cmp$n <- n
-      res_list[[sel_name]] <- cmp
+      cmp <- tryCatch({
+        Qhat <- est[[sel]]$Q
+        time <- est[[sel]]$timing
+        cmp  <- compare_matrices(Q, Qhat)
+        cmp$method <- sel_name
+        cmp$timing <- time
+        cmp$n <- n
+        cmp
+      }, error = function(e) {
+        add_error("compare", meth, sel, e)
+        NULL
+      })
+      if (!is.null(cmp)) {
+        res_list[[sel_name]] <- cmp
+      }
     }
   }
-  df <- do.call(rbind, res_list)
+  df <- if (length(res_list)) do.call(rbind, res_list) else data.frame()
   rownames(df) <- NULL
-  df
+  if (collect_errors) {
+    err_df <- if (length(errors)) {
+      do.call(rbind, errors)
+    } else {
+      data.frame(
+        iter = integer(),
+        n = integer(),
+        rep = integer(),
+        method = character(),
+        selector = character(),
+        solver = character(),
+        seed = character(),
+        stage = character(),
+        error = character(),
+        stringsAsFactors = FALSE
+      )
+    }
+    list(results = df, errors = err_df)
+  } else {
+    df
+  }
 }
 run_experiments <- function(Q, ns = c(200,500,1000), sim = 50,
-                            mc_cores = parallel::detectCores(), seed=1234, estimators=NULL, ...) {
-  grid <- expand.grid(n = ns, rep = seq_len(sim))
+                            mc_cores = parallel::detectCores(), seed=1234, estimators=NULL, pcglasso_tolerance = 0.001,
+                            rep_ids = NULL, return_errors = FALSE, ...) {
+  if (is.null(rep_ids)) {
+    rep_ids <- seq_len(sim)
+  }
+  dots <- list(...)
+  dots$return_errors <- NULL
+  grid <- expand.grid(n = ns, rep = rep_ids)
   RNGkind("L'Ecuyer-CMRG")
   set.seed(seed)
-  results <- pbmclapply(
+  results <- parallel::mclapply(
     seq_len(nrow(grid)),
     function(i) {
       row <- grid[i, ]
-      df  <- run_single(Q, n = row$n, estimators = estimators, ...)
-      cbind(n = row$n, rep = row$rep, df)
+      seed_val <- paste(.Random.seed, collapse = ",")
+      if (!return_errors) {
+        df <- do.call(
+          run_single,
+          c(
+            list(Q = Q, n = row$n, estimators = estimators, pcglasso_tolerance = pcglasso_tolerance),
+            dots
+          )
+        )
+        if (nrow(df) == 0) {
+          return(data.frame())
+        }
+        return(cbind(n = row$n, rep = row$rep, df))
+      }
+
+      res <- tryCatch(
+        do.call(
+          run_single,
+          c(
+            list(
+              Q = Q, n = row$n, estimators = estimators, pcglasso_tolerance = pcglasso_tolerance,
+              collect_errors = TRUE, seed = seed_val, iter = i, rep = row$rep
+            ),
+            dots
+          )
+        ),
+        error = function(e) {
+          err <- data.frame(
+            iter = i,
+            n = row$n,
+            rep = row$rep,
+            method = NA_character_,
+            selector = NA_character_,
+            solver = NA_character_,
+            seed = seed_val,
+            stage = "run_single",
+            error = conditionMessage(e),
+            stringsAsFactors = FALSE
+          )
+          list(results = data.frame(), errors = err)
+        }
+      )
+
+      res$results <- if (nrow(res$results) == 0) {
+        res$results
+      } else {
+        cbind(n = row$n, rep = row$rep, res$results)
+      }
+      res
     },
     mc.cores    = mc_cores,
     mc.set.seed = TRUE
   )
-  do.call(rbind, results)
+  if (!return_errors) {
+    results <- Filter(function(x) !is.null(x) && nrow(x) > 0, results)
+    if (!length(results)) {
+      return(data.frame())
+    }
+    return(do.call(rbind, results))
+  }
+
+  res_list <- lapply(results, function(x) x$results)
+  err_list <- lapply(results, function(x) x$errors)
+  res_list <- Filter(function(x) !is.null(x) && nrow(x) > 0, res_list)
+  err_list <- Filter(function(x) !is.null(x), err_list)
+  res_df <- if (length(res_list)) do.call(rbind, res_list) else data.frame()
+  err_df <- if (length(err_list)) do.call(rbind, err_list) else data.frame()
+  list(results = res_df, errors = err_df)
 }
 #' Summarize & plot RMSE components, error rates, timing, and true rates across sample sizes
 #'

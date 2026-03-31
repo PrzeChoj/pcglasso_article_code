@@ -29,9 +29,9 @@ run_single <- function(Q, n, split_train = 0.7,
   # Default: PC-GLasso, Glasso, CorGL, SPACE
   if (is.null(estimators)) {
     estimators <- list(
+      PCGLcpp_I = estimator_pcglasso_I_cpp,
       PCGLFor_C = estimator_pcglasso_C_fortran,
       PCGLFor_I = estimator_pcglasso_I_fortran,
-      PCGLcpp_I = estimator_pcglasso_I_cpp,
       PCGLcpp_C = estimator_pcglasso_C_cpp,
       PCGLcart_C = estimator_pcglasso_C_Carter,
       PCGLcart_I = estimator_pcglasso_I_Carter,
