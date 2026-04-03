@@ -1,3 +1,5 @@
+# 5 minute of 7 cores of Apple M2
+
 # Load required libraries
 library(huge)
 library(snow)
@@ -24,7 +26,7 @@ log_returns <- log(my_data[-1, ] / my_data[-nrow(my_data), ])
 log_returns <- sweep(log_returns, 1, rowMeans(log_returns))
 
 # Simulation parameters
-set.seed(42)
+set.seed(1234)
 sim <- 200                        # Number of replications per (p, lambda) combination
 n   <- 400                        # Sample size (number of time points) for each replication
 p_vec <- c(50, 100, 150, 300)     # Different numbers of companies to test
@@ -48,6 +50,7 @@ pb <- txtProgressBar(min = 0, max = num_jobs, style = 3)
 progress <- function(n) setTxtProgressBar(pb, n)
 opts <- list(progress = progress)
 
+start_time <- Sys.time()
 # MAIN PARALLEL LOOP: iterate over all (p, alpha, replication) combinations
 results_list <- foreach(
   i = seq_len(num_jobs),
@@ -129,6 +132,9 @@ results_list <- foreach(
 stopCluster(cl)
 close(pb)
 
+end_time <- Sys.time()
+print(end_time - start_time)
+
 # Reshape results to long format for plotting run times
 results_long <- results_list %>%
   pivot_longer(
@@ -175,7 +181,7 @@ fig <- ggplot(plot_data, aes(x = p, y = mean_time, color = Method)) +
     color = "Method"
   ) +
   scale_y_log10(
-    limits = c(0.0003, 0.3),
+    limits = c(min(plot_data$lower_ci), max(plot_data$upper_ci)),
     breaks = c(0.001, 0.01, 0.1, 1),
     labels = c("0.001", "0.01", "0.1", "1")
   ) +
@@ -185,6 +191,10 @@ fig <- ggplot(plot_data, aes(x = p, y = mean_time, color = Method)) +
 print(fig)
 
 # ggsave(
-#   "raw_experiments/stockmarket/diag_newton.png",
+#   "./experiments/Appendix_D/diag_newton.png",
+#   plot = fig, width = 7, height = 4
+# )
+# ggsave(
+#   "./outputs/Appendix_D_diag_newton.png",
 #   plot = fig, width = 7, height = 4
 # )
