@@ -3,7 +3,7 @@
 library(ggplot2)
 library(patchwork) # or library(gridExtra)
 
-source("./experiments/estimation_function.R")
+source("./experiments/utils.R")
 
 
 gamma <- 0.5
