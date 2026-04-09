@@ -2,9 +2,9 @@
 library(patchwork)
 library(ggplot2)
 library(ggrepel)
-source("../hub_methods/013_Method_IPCHD.R")
-source("../hub_methods/012_Method_VariableScreening.R")
-source("../hub_methods/011_Method_MatrixThresholding.R")
+source("hub_methods/013_Method_IPCHD.R")
+source("hub_methods/012_Method_VariableScreening.R")
+source("hub_methods/011_Method_MatrixThresholding.R")
 source("../estimation_function.R")
 
 gamma <- 0.5
