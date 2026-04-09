@@ -36,14 +36,14 @@ solver_from_method <- function(method) {
 
 run_single <- function(Q, n, split_train = 0.7,
                        alpha_grid = sort(unique(c(seq(-0.1, 0.1, length.out = 10), 0))),
-                       nlambda = 100, lambda.min.ratio = 0.01, pcglasso_tolerance = 0.001,
+                       nlambda = 100, lambda.min.ratio = 0.01, pcglasso_tolerance = 1e-5,
                        estimators = NULL,
                        collect_errors = FALSE,
                        seed = NA_character_,
                        iter = NA_integer_,
                        rep = NA_integer_) {
   p <- ncol(Q)
-  pcglasso_tolerance <- 200*pcglasso_tolerance/n
+  #pcglasso_tolerance <- 1*pcglasso_tolerance/sqrt(n)
   L <- Cholesky(Matrix(forceSymmetric(Q), sparse = TRUE), LDL = FALSE, perm = TRUE)
   z <- matrix(rnorm(n * p), nrow = p, ncol = n)
   x <- solve(L, solve(L, z, system = "P"), system = "Lt")
@@ -66,15 +66,13 @@ run_single <- function(Q, n, split_train = 0.7,
   # Default: PC-GLasso, Glasso, CorGL, SPACE
   if (is.null(estimators)) {
     estimators <- list(
-      PCGLcpp_I = estimator_pcglasso_I_cpp,
-      PCGLFor_C = estimator_pcglasso_C_fortran,
-      PCGLFor_I = estimator_pcglasso_I_fortran,
-      PCGLcpp_C = estimator_pcglasso_C_cpp,
-      PCGLcart_C = estimator_pcglasso_C_Carter,
-      PCGLcart_I = estimator_pcglasso_I_Carter,
+      PCGLcpp_I = estimator_pcglasso_I_primal,
+      #PCGLFor_C = estimator_pcglasso_C_fortran,
+      PCGLFor_I = estimator_pcglasso_I_dual,
+      #PCGLcpp_C = estimator_pcglasso_C_cpp,
       GL        = estimator_glasso,
-      CGL       = estimator_corglasso,
-      SPACE     = estimator_space
+      SPACE     = estimator_space,
+      CGL       = estimator_corglasso
     )
   }
 

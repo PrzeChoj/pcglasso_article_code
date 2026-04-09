@@ -26,10 +26,7 @@ PART=${SLURM_ARRAY_TASK_ID:-1}
 N_PARTS=7
 # Set N_LIST="all" or "200,300,5000" to change the n values.
 N_LIST=${N_LIST:-5000}
-RESULTS_DIR=${RESULTS_DIR:-results}
 
-mkdir -p "$RESULTS_DIR"
-
-echo "Starting big run: part ${PART} of ${N_PARTS}, n_list=${N_LIST}, results_dir=${RESULTS_DIR}"
-OUTPUT_DIR="$RESULTS_DIR" Rscript estimate_simulated_big.R TRUE "$PART" "$N_PARTS" "$N_LIST"
+echo "Starting big run: part ${PART} of ${N_PARTS}, n_list=${N_LIST}"
+Rscript estimate_simulated_big.R TRUE "$PART" "$N_PARTS" "$N_LIST"
 echo "Finished big run: part ${PART} of ${N_PARTS}"

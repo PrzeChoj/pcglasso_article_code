@@ -90,9 +90,9 @@ graphics.off()
 split.train        <- 0.7
 ns_all             <- c(200, 300, 500, 1000, 5000)
 ns_default         <- 5000
-sim                <- 200
+sim                <- 20
 nlambda            <- 50
-mc_cores           <- 1L
+mc_cores           <- 8L
 alpha_grid         <- 0
 lambda.min.ratio   <- 0.01
 

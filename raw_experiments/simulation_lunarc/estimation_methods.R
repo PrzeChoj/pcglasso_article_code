@@ -5,7 +5,7 @@ pcglasso_estimator_core <- function(
     lambdas, alpha_grid, pcglasso_tolerance,
     R0_full_fun  = NULL,
     R0_train_fun = NULL,
-    solver_R = c("fortran", "cpp")
+    solver_R = c("dual", "primal")
 ) {
   solver_R <- match.arg(solver_R)
 
@@ -19,6 +19,7 @@ pcglasso_estimator_core <- function(
         S_full,
         alpha = a,
         max_edge_fraction = 0.3,
+        max_iter = 1000,
         lambdas = lambdas,
         tolerance = pcglasso_tolerance,
         R0 = R0_full,
@@ -48,6 +49,7 @@ pcglasso_estimator_core <- function(
       path <- pcglassoPath(
         S_train,
         alpha = a,
+        max_iter = 2000,
         max_edge_fraction = 0.3,
         lambdas = lambdas,
         tolerance = pcglasso_tolerance,
@@ -76,7 +78,7 @@ pcglasso_estimator_core <- function(
 }
 
 ## start I, Fortran
-estimator_pcglasso_I_fortran <- function(
+estimator_pcglasso_I_dual <- function(
     S_full, S_train, S_test,
     n, n_train, n_test,
     lambdas, alpha_grid, pcglasso_tolerance, ...
@@ -87,12 +89,12 @@ estimator_pcglasso_I_fortran <- function(
     lambdas, alpha_grid, pcglasso_tolerance,
     R0_full_fun  = NULL,
     R0_train_fun = NULL,
-    solver_R = "fortran"
+    solver_R = "dual"
   )
 }
 
 ## start I, C++
-estimator_pcglasso_I_cpp <- function(
+estimator_pcglasso_I_primal <- function(
     S_full, S_train, S_test,
     n, n_train, n_test,
     lambdas, alpha_grid, pcglasso_tolerance, ...
@@ -103,7 +105,7 @@ estimator_pcglasso_I_cpp <- function(
     lambdas, alpha_grid, pcglasso_tolerance,
     R0_full_fun  = NULL,
     R0_train_fun = NULL,
-    solver_R = "cpp"
+    solver_R = "primal"
   )
 }
 
@@ -111,7 +113,7 @@ estimator_pcglasso_I_cpp <- function(
 
 
 ## start C, Fortran
-estimator_pcglasso_C_fortran <- function(
+estimator_pcglasso_C_dual <- function(
     S_full, S_train, S_test,
     n, n_train, n_test,
     lambdas, alpha_grid, pcglasso_tolerance, ...
@@ -125,12 +127,12 @@ estimator_pcglasso_C_fortran <- function(
     lambdas, alpha_grid, pcglasso_tolerance,
     R0_full_fun  = R0_full_fun,
     R0_train_fun = R0_train_fun,
-    solver_R = "fortran"
+    solver_R = "dual"
   )
 }
 
 ## start C, C++
-estimator_pcglasso_C_cpp <- function(
+estimator_pcglasso_C_primal <- function(
     S_full, S_train, S_test,
     n, n_train, n_test,
     lambdas, alpha_grid, pcglasso_tolerance, ...
@@ -144,7 +146,7 @@ estimator_pcglasso_C_cpp <- function(
     lambdas, alpha_grid, pcglasso_tolerance,
     R0_full_fun  = R0_full_fun,
     R0_train_fun = R0_train_fun,
-    solver_R = "cpp"
+    solver_R = "primal"
   )
 }
 
@@ -165,7 +167,6 @@ estimator_pcglasso_C_Carter <- function(
         S_full,
         lambdas,
         pcglasso_tolerance,
-        pcglasso_tolerance_modifier = 100,
         alpha = a,
         R0 = R0_full
       )
@@ -194,7 +195,6 @@ estimator_pcglasso_C_Carter <- function(
         S_train,
         lambdas,
         pcglasso_tolerance,
-        pcglasso_tolerance_modifier = 100,
         alpha = a,
         R0 = R0_train
       )
@@ -233,7 +233,6 @@ estimator_pcglasso_I_Carter <- function(
         S_full,
         lambdas,
         pcglasso_tolerance,
-        pcglasso_tolerance_modifier = 100,
         alpha = a,
         R0 = diag(dim(S_full)[1])
       )
@@ -262,7 +261,6 @@ estimator_pcglasso_I_Carter <- function(
         S_train,
         lambdas,
         pcglasso_tolerance,
-        pcglasso_tolerance_modifier = 100,
         alpha = a,
         R0 = diag(dim(S_full)[1])
       )
