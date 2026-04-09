@@ -95,18 +95,32 @@ colors_named <- c(
 #  setNames("#e6ab02", label_pcglasso_opt)
 #)
 
-fig <- ggplot(df_all, aes(x = Edges, y = BIC, color = Method)) +
-  geom_line(linewidth = 1.1) +
-  scale_color_manual(values = colors_named) +
-  labs(x = "#Edges", y = "EBIC(0.5)") +
-  theme_minimal(base_size = 14) +
-  theme(
-    legend.position = "right",
-    legend.title = element_blank(),
-    legend.text = element_text(size = 8),
-    legend.box = "horizontal"
+fig <- ggplot(df_all, aes(x = Edges, y = BIC, colour = Method)) +
+  geom_line(linewidth = 0.9) +
+  scale_colour_manual(values = colors_named) +
+  scale_x_continuous(
+    name = "Number of edges",
+    breaks = seq(0, 300, 50),
+    expand = expansion(mult = c(0.01, 0.02))
   ) +
-  coord_cartesian(xlim = c(0, 300), ylim = c(28000, 35000))
+  scale_y_continuous(
+    name = expression(EBIC(gamma == 0.5)),
+    breaks = seq(28000, 35000, 1000),
+    expand = expansion(mult = c(0.01, 0.02))
+  ) +
+  coord_cartesian(xlim = c(0, 300), ylim = c(29000, 34000)) +
+  guides(colour = guide_legend(nrow = 1, byrow = TRUE)) +
+  theme_bw(base_size = 12) +
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.key.width = grid::unit(1.3, "lines"),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.border = element_rect(linewidth = 0.4),
+    plot.background = element_rect(fill = "white", colour = NA),
+    panel.background = element_rect(fill = "white", colour = NA)
+  )
 
 print(fig)
  ggsave(
@@ -117,10 +131,10 @@ print(fig)
 
 library(patchwork)  # or library(gridExtra)
 
-p_glasso   <- make_plot_matrix(Optim.glasso$Theta_opt, "GLASSO")
-p_corglasso     <- make_plot_matrix(Optim.corglasso$Theta_opt, "Cor-GLASSO")
-p_pcglasso    <- make_plot_matrix(Optim.pcglasso$Theta_opt, "PCGLASSO")
-p_space   <- make_plot_matrix(Optim.space$Theta_opt, "SPACE")
+p_glasso   <- make_plot_matrix(Optim.glasso$Theta_opt, "GLASSO", x_lab="", y_lab="")
+p_corglasso     <- make_plot_matrix(Optim.corglasso$Theta_opt, "Cor-GLASSO", x_lab="", y_lab="")
+p_pcglasso    <- make_plot_matrix(Optim.pcglasso$Theta_opt, "PCGLASSO", x_lab="", y_lab="")
+p_space   <- make_plot_matrix(Optim.space$Theta_opt, "SPACE", x_lab="", y_lab="")
 
 # Combine all 4 plots in 2×2 layout
 fig <- ((p_glasso | p_corglasso) /
@@ -136,10 +150,10 @@ Optim.nEdge.space <- get_optimal_matrix(space.res$path, space.res$path.loss, max
 Optim.nEdge.corrglasso <- get_optimal_matrix(corglasso.res$path, corglasso.res$path.loss, max_edges=Optim.pcglasso$nEdges)
 Optim.nEdge.glasso <- get_optimal_matrix(glasso.res$path, glasso.res$path.loss, max_edges=Optim.pcglasso$nEdges)
 
-p2_glasso   <- make_plot_matrix(Optim.nEdge.glasso$Theta_opt, "GLASSO")
-p2_corglasso     <- make_plot_matrix(Optim.nEdge.corrglasso$Theta_opt, "Cor-GLASSO")
-p2_pcglasso    <- make_plot_matrix(Optim.pcglasso$Theta_opt, "PCGLASSO")
-p2_space   <- make_plot_matrix(Optim.nEdge.space$Theta_opt, "SPACE")
+p2_glasso   <- make_plot_matrix(Optim.nEdge.glasso$Theta_opt, "GLASSO", x_lab="", y_lab="")
+p2_corglasso     <- make_plot_matrix(Optim.nEdge.corrglasso$Theta_opt, "Cor-GLASSO", x_lab="", y_lab="")
+p2_pcglasso    <- make_plot_matrix(Optim.pcglasso$Theta_opt, "PCGLASSO", x_lab="", y_lab="")
+p2_space   <- make_plot_matrix(Optim.nEdge.space$Theta_opt, "SPACE", x_lab="", y_lab="")
 
 fig <- ((p2_glasso | p2_corglasso) /
           (p2_pcglasso | p2_space))
@@ -214,3 +228,34 @@ V(infered_graph.gl_cor)$size <- 22
 pdf("PCGLASSO_corr_sub.pdf", width = 7, height = 7)
 plot(infered_graph.gl_cor, layout = lay, vertex.label = vertex.label, main = "Cor-GLASSO")
 dev.off()
+
+
+
+# Diagonal analysis
+D_corr_sd <- diag(Optim.corglasso_sd$Theta_opt)
+D_corr <- diag(Optim.corglasso$Theta_opt)
+D_pcglasso <- diag(Optim.pcglasso$Theta_opt)
+
+
+df <- data.frame(
+  id          = seq_along(D_corr),        # index for optional labels
+  D_corr      = as.numeric(D_corr),
+  D_pcglasso  = as.numeric(D_pcglasso),
+  D_corr_sd   = as.numeric(D_corr_sd)
+)
+
+# remove any non-finite rows (safer plotting)
+df <- subset(df, is.finite(D_corr) & is.finite(D_pcglasso) & is.finite(D_corr_sd))
+
+
+
+p <- ggplot(df, aes(D_corr, D_pcglasso, label = id)) +
+  geom_text(size = 3) +                         # <- labels instead of points
+  geom_abline(slope = 1, intercept = 0) +       # 1–1 line
+  labs(title = "Diagonal entries",
+       x = "Cor-GLASSO",
+       y = "PCGLASSO") +
+  theme_minimal(base_size = 13) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave("diag_PCGlasso_Corr.pdf",p,width=5,height=5)

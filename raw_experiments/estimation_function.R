@@ -317,13 +317,179 @@ get_alpha <- function(Theta,scale=1) {
     sum(abs(x)^scale) - 1
   }))
 }
+make_plot_matrix_binary_highlight_rc <- function(
+    my_matrix, my_title,
+    x_lab = "Column", y_lab = "Row",
+    base_size = 6,
+    title_size = 8,
+    axis_title_size = 6,
+    axis_text_size = 5,
+    tick_length_pt = 1,
+    highlight_index = NULL,
+    highlight_label = NULL,
+    zero_color = "white",
+    nonzero_color = "blue",
+    highlight_color = "red"
+) {
+
+  stopifnot(is.matrix(my_matrix))
+
+  nr <- nrow(my_matrix)
+  nc <- ncol(my_matrix)
+
+  if (!is.null(highlight_index)) {
+    if (length(highlight_index) != 1 || !is.numeric(highlight_index)) {
+      stop("highlight_index must be a single numeric value.")
+    }
+
+    highlight_index <- as.integer(highlight_index)
+
+    if (highlight_index < 1 || highlight_index > min(nr, nc)) {
+      stop("highlight_index must be between 1 and min(nrow(my_matrix), ncol(my_matrix)).")
+    }
+
+    if (is.null(highlight_label)) {
+      highlight_label <- paste("Index", highlight_index)
+    }
+  }
+
+  df_matrix <- expand.grid(
+    Row = seq_len(nr),
+    Column = seq_len(nc)
+  )
+
+  df_matrix$IsNonZero <- as.vector(my_matrix != 0)
+  df_matrix$FillGroup <- "zero"
+
+  # Default: all nonzero cells are blue
+  df_matrix$FillGroup[df_matrix$IsNonZero] <- "nonzero"
+
+  # Selected row and column are red, but only for nonzero cells
+  if (!is.null(highlight_index)) {
+    sel <- df_matrix$IsNonZero &
+      (df_matrix$Row == highlight_index | df_matrix$Column == highlight_index)
+    df_matrix$FillGroup[sel] <- "highlight"
+  }
+
+  df_matrix$FillGroup <- factor(
+    df_matrix$FillGroup,
+    levels = c("zero", "nonzero", "highlight")
+  )
+
+  off_diag <- df_matrix$Row != df_matrix$Column
+  off_diag_nnz <- sum(df_matrix$IsNonZero[off_diag], na.rm = TRUE)
+  off_diag_tot <- sum(off_diag)
+
+  nnz_pct <- if (off_diag_tot > 0) {
+    round(100 * off_diag_nnz / off_diag_tot, 0)
+  } else {
+    NA
+  }
+
+  x_breaks <- unique(c(1, seq(20, nc, by = 20), nc))
+  y_breaks <- unique(c(1, seq(20, nr, by = 20), nr))
+
+  # Extra room outside the matrix for labels
+  extra_left   <- 1.2
+  extra_bottom <- 1.8
+
+  p <- ggplot(df_matrix, aes(x = Column, y = Row, fill = FillGroup)) +
+    geom_tile(color = "white", linewidth = 0.1) +
+    scale_fill_manual(
+      values = c(
+        zero = zero_color,
+        nonzero = nonzero_color,
+        highlight = highlight_color
+      ),
+      drop = FALSE
+    ) +
+    labs(
+      title = paste0(my_title, ", non-zero = ", nnz_pct, "%"),
+      x = if (identical(x_lab, "")) NULL else x_lab,
+      y = if (identical(y_lab, "")) NULL else y_lab
+    ) +
+    scale_x_continuous(
+      limits = c(0.5 - extra_left, nc + 0.5),
+      breaks = x_breaks,
+      expand = c(0, 0)
+    ) +
+    scale_y_reverse(
+      limits = c(nr + 0.5 + extra_bottom, 0.5),
+      breaks = y_breaks,
+      expand = c(0, 0)
+    ) +
+    coord_fixed(clip = "off") +
+    theme_minimal(base_size = base_size) +
+    theme(
+      panel.grid          = element_blank(),
+      axis.ticks          = element_line(linewidth = 0.2),
+      axis.ticks.length   = grid::unit(tick_length_pt, "pt"),
+      legend.position     = "none",
+      panel.background    = element_rect(fill = "white", color = NA),
+      plot.background     = element_rect(fill = "white", color = NA),
+      plot.title          = element_text(
+        size = title_size,
+        hjust = 0.5,
+        margin = margin(b = 2)
+      ),
+      axis.title.x        = if (identical(x_lab, "")) {
+        element_blank()
+      } else {
+        element_text(
+          size = axis_title_size,
+          margin = margin(t = 2)
+        )
+      },
+      axis.title.y        = if (identical(y_lab, "")) {
+        element_blank()
+      } else {
+        element_text(
+          size = axis_title_size,
+          margin = margin(r = 4)
+        )
+      },
+      axis.text.x         = element_text(size = axis_text_size),
+      axis.text.y         = element_text(size = axis_text_size),
+      plot.title.position = "plot",
+      plot.margin         = margin(5, 5, 30, 25)
+    )
+
+  if (!is.null(highlight_index)) {
+    p <- p +
+      annotate(
+        "text",
+        x = highlight_index,
+        y = nr + 1.1,
+        label = highlight_label,
+        angle = 90,
+        fontface = "bold",
+        hjust = 0,
+        vjust = 0.5,
+        size = axis_text_size / 2.8,
+        color = highlight_color
+      ) +
+      annotate(
+        "text",
+        x = 0.25,
+        y = highlight_index,
+        label = highlight_label,
+        fontface = "bold",
+        hjust = 1,
+        vjust = 0.5,
+        size = axis_text_size / 2.8,
+        color = highlight_color
+      )
+  }
+
+  return(p)
+}
 make_plot_matrix <- function(my_matrix, my_title,
-                             x_lab = "Column", y_lab = "Row",
-                             base_size = 6,         # overall baseline
-                             title_size = 8,
-                             axis_title_size = 6,
-                             axis_text_size = 5,
-                             tick_length_pt = 1) {
+                              x_lab = "Column", y_lab = "Row",
+                              base_size = 6,         # overall baseline
+                              title_size = 8,
+                              axis_title_size = 6,
+                              axis_text_size = 5,
+                              tick_length_pt = 1) {
 
   matrix_data <- my_matrix != 0
   df_matrix <- as.data.frame(as.table(matrix_data))
@@ -339,9 +505,15 @@ make_plot_matrix <- function(my_matrix, my_title,
     geom_tile(color = "white") +
     scale_fill_gradient(low = "white", high = "blue", name = "Non-Zero") +
     labs(
-      title = paste(my_title, ", non-zero = ", round(100*(nnz-dim(matrix_data)[1])/(dim(matrix_data)[1]^2 - dim(matrix_data)[1]),0),'%', sep = ""),
-      x = x_lab,
-      y = y_lab
+      title = paste(
+        my_title, ", non-zero = ",
+        round(100 * (nnz - dim(matrix_data)[1]) /
+                (dim(matrix_data)[1]^2 - dim(matrix_data)[1]), 0),
+        "%",
+        sep = ""
+      ),
+      x = if (identical(x_lab, "")) NULL else x_lab,
+      y = if (identical(y_lab, "")) NULL else y_lab
     ) +
     scale_x_continuous(breaks = seq(0, ncol(my_matrix), by = 20)) +
     scale_y_reverse(breaks = seq(0, nrow(my_matrix), by = 20)) +
@@ -355,8 +527,8 @@ make_plot_matrix <- function(my_matrix, my_title,
       panel.background    = element_rect(fill = "white", color = NA),
       plot.background     = element_rect(fill = "white", color = NA),
       plot.title          = element_text(size = title_size, hjust = 0.5, margin = margin(b = 2)),
-      axis.title.x        = element_text(size = axis_title_size, margin = margin(t = 2)),
-      axis.title.y        = element_text(size = axis_title_size, margin = margin(r = 4)),
+      axis.title.x        = if (identical(x_lab, "")) element_blank() else element_text(size = axis_title_size, margin = margin(t = 2)),
+      axis.title.y        = if (identical(y_lab, "")) element_blank() else element_text(size = axis_title_size, margin = margin(r = 4)),
       axis.text.x         = element_text(size = axis_text_size),
       axis.text.y         = element_text(size = axis_text_size),
       plot.title.position = "plot"
@@ -428,8 +600,8 @@ make_plot_matrix_v2 <- function(my_matrix, my_title,
     ) +
     labs(
       title = paste0(my_title, ", non-zero = ", nnz_pct, "%"),
-      x = x_lab,
-      y = y_lab
+      x = if (identical(x_lab, "")) NULL else x_lab,
+      y = if (identical(y_lab, "")) NULL else y_lab
     ) +
     scale_x_continuous(
       limits = c(0.5, nc + 0.5),
@@ -452,10 +624,10 @@ make_plot_matrix_v2 <- function(my_matrix, my_title,
       plot.background     = element_rect(fill = "white", color = NA),
       plot.title          = element_text(size = title_size, hjust = 0.5,
                                          margin = margin(b = 2)),
-      axis.title.x        = element_text(size = axis_title_size,
-                                         margin = margin(t = 2)),
-      axis.title.y        = element_text(size = axis_title_size,
-                                         margin = margin(r = 4)),
+      axis.title.x        = if (identical(x_lab, "")) element_blank() else element_text(size = axis_title_size,
+                                                                                        margin = margin(t = 2)),
+      axis.title.y        = if (identical(y_lab, "")) element_blank() else element_text(size = axis_title_size,
+                                                                                        margin = margin(r = 4)),
       axis.text.x         = element_text(size = axis_text_size),
       axis.text.y         = element_text(size = axis_text_size),
       plot.title.position = "plot",

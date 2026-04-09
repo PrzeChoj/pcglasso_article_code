@@ -41,7 +41,7 @@ Optim.glasso <- get_optimal_matrix(glasso.res$path, glasso.res$path.loss)
 p_glasso    <- make_plot_matrix(Optim.glasso$Theta_opt, "GLASSO",
                                 base_size = 6, title_size = 8,
                                 axis_title_size = 6, axis_text_size = 5,
-                                tick_length_pt = 1)
+                                tick_length_pt = 1, y_lab = "",x_lab="")
 p_alpha_glasso <- make_alpha_plot(Optim.glasso$alpha,"GLASSO")
 
 
@@ -57,7 +57,7 @@ Optim.cglasso <- get_optimal_matrix(cglasso.res$path, cglasso.res$path.loss)
 p_corglasso    <- make_plot_matrix(Optim.cglasso$Theta_opt, "corr-GLASSO",
                                    base_size = 6, title_size = 8,
                                    axis_title_size = 6, axis_text_size = 5,
-                                   tick_length_pt = 1)
+                                   tick_length_pt = 1, y_lab = "",x_lab="")
 p_alpha_corglasso <- make_alpha_plot(Optim.cglasso$alpha,"Corr-GLASSO")
 
 
@@ -75,7 +75,7 @@ Optim.pcglasso <- get_optimal_matrix(res.pgclasso$path, res.pgclasso$path.loss)
 p_pcglasso     <- make_plot_matrix(Optim.pcglasso$Theta_opt, "PCGLASSO",
                                     base_size = 6, title_size = 8,
                                      axis_title_size = 6, axis_text_size = 5,
-                                     tick_length_pt = 1)
+                                     tick_length_pt = 1, y_lab = "",x_lab="")
 p_alpha_pcglasso <- make_alpha_plot(Optim.pcglasso$alpha,"PCGLASSO")
 p_pcglasso2 <- make_plot_matrix_binary_highlight_rc(cov2cor(Optim.pcglasso$Theta_opt),
                                                     "PCGLASSO",highlight_index=53,highlight_label="EFF2")
@@ -86,7 +86,6 @@ ggsave(
   width =3,
   height = 3
 )
-
 #screening method threshold method
 # does not screen since n suff big compared to p
 Res <- screening_vars_SMZL2024(X=df_genes,
@@ -116,7 +115,7 @@ p_alpha_emperical <- make_alpha_plot(alpha,"Thresholded")
 p_emp <- make_plot_matrix(PC.est.thres, "Thresholded",
                           base_size = 6, title_size = 8,
                           axis_title_size = 6, axis_text_size = 5,
-                          tick_length_pt = 1)
+                          tick_length_pt = 1,  y_lab = "",x_lab="")
 
 fig <- ((p_glasso | p_corglasso) /
           (p_pcglasso |p_emp ))
@@ -170,23 +169,43 @@ colors_named <- c(
 #  setNames("#e6ab02", label_pcglasso_opt)
 #)
 
-fig <- ggplot(df_all, aes(x = Edges, y = BIC, color = Method)) +
-  geom_line(linewidth = 1.1) +
-  scale_color_manual(values = colors_named) +
-  labs(x = "#Edges", y = "EBIC(0.5)") +
-  theme_minimal(base_size = 14) +
+fig <- ggplot(df_all, aes(x = Edges, y = BIC, colour = Method)) +
+  geom_line(linewidth = 0.9) +
+  scale_colour_manual(values = colors_named) +
+  scale_x_continuous(
+    name = "Number of edges",
+    breaks = seq(1000, 4000, by = 500),
+    expand = expansion(mult = c(0.01, 0.02))
+  ) +
+  scale_y_continuous(
+    name = expression(EBIC(gamma == 0.5)),
+    expand = expansion(mult = c(0.01, 0.02))
+  ) +
+  coord_cartesian(xlim = c(1000, 4000)) +
+  guides(colour = guide_legend(nrow = 1, byrow = TRUE)) +
+  theme_bw(base_size = 11) +
   theme(
-    legend.position = "right",
+    legend.position = "bottom",
     legend.title = element_blank(),
     legend.text = element_text(size = 8),
-    legend.box = "horizontal"
-  ) +
-  coord_cartesian( xlim = c(1000, 4000))
+    legend.key.width = grid::unit(1.4, "lines"),
+    legend.box = "horizontal",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.border = element_rect(linewidth = 0.4),
+    plot.background = element_rect(fill = "white", colour = NA),
+    panel.background = element_rect(fill = "white", colour = NA)
+  )
 
 print(fig)
+
 ggsave(
   "BIC_fig_cancer.png",
-  plot = fig, width = 4, height = 3
+  plot = fig,
+  width = 5.2,
+  height = 3,
+  dpi = 300,
+  bg = "white"
 )
 plot(sort(diag(Optim.pcglasso$Theta_opt), decreasing = T),ylab='Diagonal values',xlab='')
 cat('HUBS identified by Hub method: SCARNA7, MIR3609, SEMG1, SEMG2, RN7SK \n')
@@ -273,8 +292,8 @@ g <- ggplot(df, aes(x = pos, y = norm)) +
     aes(label = label),
     min.segment.length = 0, box.padding = 0.2, max.overlaps = Inf, size = 3
   ) +
-  facet_wrap(~ panel, ncol = 2) +
-  coord_cartesian(ylim = c(-1, 1)) +
+  facet_wrap(~ panel, ncol = 3) +
+  coord_cartesian(ylim = c(-1, 0.5)) +
   labs(
     x = "Columns",
     y = "Normalized values"
