@@ -1,45 +1,299 @@
-# ---- PC-GLasso Estimator ----
-estimator_pcglasso <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas, alpha_grid, ...) {
-  # BIC selection
+# ---- PC-GLasso Estimators ----
+pcglasso_estimator_core <- function(
+    S_full, S_train, S_test,
+    n, n_train, n_test,
+    lambdas, alpha_grid, pcglasso_tolerance,
+    R0_full_fun  = NULL,
+    R0_train_fun = NULL,
+    solver_R = c("dual", "primal")
+) {
+  solver_R <- match.arg(solver_R)
+
+  # --- BIC selection ---
   t_bic <- system.time({
     best_bic <- list(bic = Inf)
     for (a in alpha_grid) {
-      path <- pcglassoPath(S_full, alpha = a, max_edge_fraction = 0.3,
-                           min_lambda_ratio = min(lambdas) / max(lambdas), nlambda = length(lambdas))
+      R0_full <- if (is.null(R0_full_fun)) diag(dim(S_train)[1]) else R0_full_fun()
+
+      path <- pcglassoPath(
+        S_full,
+        alpha = a,
+        max_edge_fraction = 0.3,
+        max_iter = 1000,
+        lambdas = lambdas,
+        tolerance = pcglasso_tolerance,
+        R0 = R0_full,
+        solver_R = solver_R
+      )
+
       loss <- evaluate_objective_path(path, Sigma = S_full, n = n, gamma = 0.5)
       i <- which.min(loss$BIC_gamma)
       if (loss$BIC_gamma[i] < best_bic$bic) {
-        best_bic <- list(alpha = a, lambda = path$lambda[i], bic = loss$BIC_gamma[i], W = path$W_path[[i]])
+        best_bic <- list(
+          alpha  = a,
+          lambda = path$lambdas[i],
+          bic    = loss$BIC_gamma[i],
+          W      = path$W_path[[i]]
+        )
       }
     }
     Q_pc_bic <- (best_bic$W + t(best_bic$W))/2
   })
-  # CV selection
+
+  # --- CV selection ---
   t_cv <- system.time({
     best_cv <- list(loglik = -Inf)
     for (a in alpha_grid) {
-      path <- pcglassoPath(S_train, alpha = a, max_edge_fraction = 0.3,
-                           min_lambda_ratio = min(lambdas) / max(lambdas), nlambda = length(lambdas))
+      R0_train <- if (is.null(R0_train_fun)) diag(dim(S_train)[1]) else R0_train_fun()
+
+      path <- pcglassoPath(
+        S_train,
+        alpha = a,
+        max_iter = 2000,
+        max_edge_fraction = 0.3,
+        lambdas = lambdas,
+        tolerance = pcglasso_tolerance,
+        R0 = R0_train,
+        solver_R = solver_R
+      )
+
       loss <- evaluate_objective_path(path, Sigma = S_test, n = n_test, gamma = 0.5)
       j <- which.max(loss$loglik)
       if (loss$loglik[j] > best_cv$loglik) {
-        best_cv <- list(alpha = a, lambda = path$lambda[j], loglik = loss$loglik[j], W = path$W_path[[j]])
+        best_cv <- list(
+          alpha  = a,
+          lambda = path$lambdas[j],
+          loglik = loss$loglik[j],
+          W      = path$W_path[[j]]
+        )
       }
     }
     Q_pc_cv <- (best_cv$W + t(best_cv$W))/2
   })
+
   list(
     PCGL_bic = list(Q = Q_pc_bic, timing = as.numeric(t_bic["elapsed"]), alpha = best_bic$alpha),
     PCGL_cv  = list(Q = Q_pc_cv,  timing = as.numeric(t_cv["elapsed"]),  alpha = best_cv$alpha)
   )
 }
 
+## start I, Fortran
+estimator_pcglasso_I_dual <- function(
+    S_full, S_train, S_test,
+    n, n_train, n_test,
+    lambdas, alpha_grid, pcglasso_tolerance, ...
+) {
+  pcglasso_estimator_core(
+    S_full, S_train, S_test,
+    n, n_train, n_test,
+    lambdas, alpha_grid, pcglasso_tolerance,
+    R0_full_fun  = NULL,
+    R0_train_fun = NULL,
+    solver_R = "dual"
+  )
+}
+
+## start I, C++
+estimator_pcglasso_I_primal <- function(
+    S_full, S_train, S_test,
+    n, n_train, n_test,
+    lambdas, alpha_grid, pcglasso_tolerance, ...
+) {
+  pcglasso_estimator_core(
+    S_full, S_train, S_test,
+    n, n_train, n_test,
+    lambdas, alpha_grid, pcglasso_tolerance,
+    R0_full_fun  = NULL,
+    R0_train_fun = NULL,
+    solver_R = "primal"
+  )
+}
+
+
+
+
+## start C, Fortran
+estimator_pcglasso_C_dual <- function(
+    S_full, S_train, S_test,
+    n, n_train, n_test,
+    lambdas, alpha_grid, pcglasso_tolerance, ...
+) {
+  R0_full_fun  <- function() cov2cor(MASS::ginv(S_full))
+  R0_train_fun <- function() cov2cor(MASS::ginv(S_train))
+
+  pcglasso_estimator_core(
+    S_full, S_train, S_test,
+    n, n_train, n_test,
+    lambdas, alpha_grid, pcglasso_tolerance,
+    R0_full_fun  = R0_full_fun,
+    R0_train_fun = R0_train_fun,
+    solver_R = "dual"
+  )
+}
+
+## start C, C++
+estimator_pcglasso_C_primal <- function(
+    S_full, S_train, S_test,
+    n, n_train, n_test,
+    lambdas, alpha_grid, pcglasso_tolerance, ...
+) {
+  R0_full_fun  <- function() cov2cor(MASS::ginv(S_full))
+  R0_train_fun <- function() cov2cor(MASS::ginv(S_train))
+
+  pcglasso_estimator_core(
+    S_full, S_train, S_test,
+    n, n_train, n_test,
+    lambdas, alpha_grid, pcglasso_tolerance,
+    R0_full_fun  = R0_full_fun,
+    R0_train_fun = R0_train_fun,
+    solver_R = "primal"
+  )
+}
+
+
+## start C, Carter
+estimator_pcglasso_C_Carter <- function(
+    S_full, S_train, S_test,
+    n, n_train, n_test,
+    lambdas, alpha_grid, pcglasso_tolerance, ...
+) {
+  # --- BIC selection ---
+  t_bic <- system.time({
+    best_bic <- list(bic = Inf)
+    for (a in alpha_grid) {
+      R0_full <- cov2cor(MASS::ginv(S_full))
+
+      path <- pcglasso_path_carter(
+        S_full,
+        lambdas,
+        pcglasso_tolerance,
+        alpha = a,
+        R0 = R0_full
+      )
+
+      loss <- evaluate_objective_path(path, Sigma = S_full, n = n, gamma = 0.5)
+      i <- which.min(loss$BIC_gamma)
+      if (loss$BIC_gamma[i] < best_bic$bic) {
+        best_bic <- list(
+          alpha  = a,
+          lambda = path$lambdas[i],
+          bic    = loss$BIC_gamma[i],
+          W      = path$W_path[[i]]
+        )
+      }
+    }
+    Q_pc_bic <- (best_bic$W + t(best_bic$W))/2
+  })
+
+  # --- CV selection ---
+  t_cv <- system.time({
+    best_cv <- list(loglik = -Inf)
+    for (a in alpha_grid) {
+      R0_train <- cov2cor(MASS::ginv(S_train))
+
+      path <- pcglasso_path_carter(
+        S_train,
+        lambdas,
+        pcglasso_tolerance,
+        alpha = a,
+        R0 = R0_train
+      )
+
+      loss <- evaluate_objective_path(path, Sigma = S_test, n = n_test, gamma = 0.5)
+      j <- which.max(loss$loglik)
+      if (loss$loglik[j] > best_cv$loglik) {
+        best_cv <- list(
+          alpha  = a,
+          lambda = path$lambdas[j],
+          loglik = loss$loglik[j],
+          W      = path$W_path[[j]]
+        )
+      }
+    }
+    Q_pc_cv <- (best_cv$W + t(best_cv$W))/2
+  })
+
+  list(
+    PCGL_bic = list(Q = Q_pc_bic, timing = as.numeric(t_bic["elapsed"]), alpha = best_bic$alpha),
+    PCGL_cv  = list(Q = Q_pc_cv,  timing = as.numeric(t_cv["elapsed"]),  alpha = best_cv$alpha)
+  )
+}
+
+## start I, Carter
+estimator_pcglasso_I_Carter <- function(
+    S_full, S_train, S_test,
+    n, n_train, n_test,
+    lambdas, alpha_grid, pcglasso_tolerance, ...
+) {
+  # --- BIC selection ---
+  t_bic <- system.time({
+    best_bic <- list(bic = Inf)
+    for (a in alpha_grid) {
+      path <- pcglasso_path_carter(
+        S_full,
+        lambdas,
+        pcglasso_tolerance,
+        alpha = a,
+        R0 = diag(dim(S_full)[1])
+      )
+
+      loss <- evaluate_objective_path(path, Sigma = S_full, n = n, gamma = 0.5)
+      i <- which.min(loss$BIC_gamma)
+      if (loss$BIC_gamma[i] < best_bic$bic) {
+        best_bic <- list(
+          alpha  = a,
+          lambda = path$lambdas[i],
+          bic    = loss$BIC_gamma[i],
+          W      = path$W_path[[i]]
+        )
+      }
+    }
+    Q_pc_bic <- (best_bic$W + t(best_bic$W))/2
+  })
+
+  # --- CV selection ---
+  t_cv <- system.time({
+    best_cv <- list(loglik = -Inf)
+    for (a in alpha_grid) {
+      R0_train <- cov2cor(MASS::ginv(S_train))
+
+      path <- pcglasso_path_carter(
+        S_train,
+        lambdas,
+        pcglasso_tolerance,
+        alpha = a,
+        R0 = diag(dim(S_full)[1])
+      )
+
+      loss <- evaluate_objective_path(path, Sigma = S_test, n = n_test, gamma = 0.5)
+      j <- which.max(loss$loglik)
+      if (loss$loglik[j] > best_cv$loglik) {
+        best_cv <- list(
+          alpha  = a,
+          lambda = path$lambdas[j],
+          loglik = loss$loglik[j],
+          W      = path$W_path[[j]]
+        )
+      }
+    }
+    Q_pc_cv <- (best_cv$W + t(best_cv$W))/2
+  })
+
+  list(
+    PCGL_bic = list(Q = Q_pc_bic, timing = as.numeric(t_bic["elapsed"]), alpha = best_bic$alpha),
+    PCGL_cv  = list(Q = Q_pc_cv,  timing = as.numeric(t_cv["elapsed"]),  alpha = best_cv$alpha)
+  )
+}
+
+
+
+
 # ---- Glasso Estimator ----
 estimator_glasso <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas, ...) {
   t_bic <- system.time({
     gl_full_path <- glasso::glassopath(S_full, rholist = lambdas, penalize.diagonal = FALSE)
     loss_gl_full <- evaluate_objective_path(gl_full_path$wi, Sigma = S_full, n = n, gamma = 0.5)
-    idx_gl_bic   <- which.min(loss_gl_full$BIC)
+    idx_gl_bic   <- which.min(loss_gl_full$BIC_gamma)
     Q_gl_bic     <- (gl_full_path$wi[,,idx_gl_bic] + t(gl_full_path$wi[,,idx_gl_bic])) / 2
   })
   t_cv <- system.time({
@@ -63,7 +317,7 @@ estimator_corglasso <- function(S_full, S_train, S_test, n, n_train, n_test, lam
     vars_full    <- diag(S_full)
     loss_cg_full <- evaluate_objective_path(cov2cor_inv(cg_full_path$wi, 1/vars_full), Sigma = S_full,
                                     n = n, gamma = 0.5)
-    idx_cg_bic   <- which.min(loss_cg_full$BIC)
+    idx_cg_bic   <- which.min(loss_cg_full$BIC_gamma)
     Theta_cg_bic <- cov2cor_inv(cg_full_path$wi[,,idx_cg_bic], 1/vars_full)
     Q_cg_bic     <- (Theta_cg_bic + t(Theta_cg_bic)) / 2
   })
@@ -149,5 +403,43 @@ estimator_space <- function(S_full, S_train, S_test, n, n_train, n_test, lambdas
                       timing = as.numeric(t_cv["elapsed"]),
                       alpha = NA,
                       scale = scale_cv)
+  )
+}
+
+
+
+pcglasso_path_carter <-function(
+  S,
+  lambdas,
+  tolerance,
+  pcglasso_tolerance_modifier = 100,
+  alpha = 1,
+  R0 = NULL
+){
+  p <- dim(S)[1]
+  c_parameter <- 1-alpha
+
+  precision_array <- array(0, dim = c(p, p, length(lambdas)))
+  for(i in 1:length(lambdas)){
+    Theta_start <- if (i == 1) {R0} else {cov2cor(precision_array[,,i-1])}
+    Theta_start <- (Theta_start + t(Theta_start)) / 2
+    precision_array[,,i] <- pcglasso(
+      S, lambdas[i],
+      c = c_parameter,
+      threshold = pcglasso_tolerance_modifier*tolerance,
+      Theta_start = Theta_start
+    )
+  }
+
+  list(
+    lambdas = lambdas,
+    R_path = lapply(1:length(lambdas), function(i){cov2cor(precision_array[,,i])}),
+    Ri_path = NA,
+    D_path = lapply(1:length(lambdas), function(i){sqrt(diag(precision_array[,,i]))}),
+    W_path = lapply(1:length(lambdas), function(i){precision_array[,,i]}),
+    Wi_path = NA,
+    objective = NA,
+    iters = NA,
+    path_optimization_time = NA
   )
 }

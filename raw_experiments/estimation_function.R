@@ -166,11 +166,12 @@ estimator_pcglassoFast <- function(
     S_full,
     n,
     lambdas,
-    solver_R = c("fortran", "cpp"),
+    solver_R = c("primal", "dual"),
     alpha_grid = 0,
     gamma = 0,
     max_edge_fraction = 0.3,
     R_start = NULL,
+    max_iter = 500,
     verbose = 0) {
   solver_R <- match.arg(solver_R)
 
@@ -191,6 +192,7 @@ estimator_pcglassoFast <- function(
         lambdas = lambdas,
         solver_R = solver_R,
         R0 = R_start,
+        max_iter = max_iter,
         verbose = verbose
       )
 
@@ -234,21 +236,24 @@ estimator_pcglasso <- function(S_full,
                                gamma = 0,
                                max_edge_fraction = 0.3,
                                R_start = NULL,
+                               max_iter = 500,
+                               method = 'primal',
                                verbose = 0) {
   estimator_pcglassoFast(
-    S_full,
-    n,
-    lambdas,
-    "fortran",
-    alpha_grid,
-    gamma,
-    max_edge_fraction,
-    R_start,
-    verbose
+    S_full = S_full,
+    n =n,
+    lambdas=  lambdas,
+    solver_R = method,
+    alpha_grid = alpha_grid,
+    gamma = gamma,
+    max_edge_fraction= max_edge_fraction,
+    R_start=R_start,
+    max_iter = max_iter,
+    verbose = verbose
   )
 }
 
-estimator_pcglasso_cpp <- function(
+estimator_pcglasso_primal <- function(
     S_full,
     n,
     lambdas,
@@ -261,7 +266,7 @@ estimator_pcglasso_cpp <- function(
     S_full,
     n,
     lambdas,
-    "cpp",
+    "primal",
     alpha_grid,
     gamma,
     max_edge_fraction,
@@ -312,13 +317,179 @@ get_alpha <- function(Theta,scale=1) {
     sum(abs(x)^scale) - 1
   }))
 }
+make_plot_matrix_binary_highlight_rc <- function(
+    my_matrix, my_title,
+    x_lab = "Column", y_lab = "Row",
+    base_size = 6,
+    title_size = 8,
+    axis_title_size = 6,
+    axis_text_size = 5,
+    tick_length_pt = 1,
+    highlight_index = NULL,
+    highlight_label = NULL,
+    zero_color = "white",
+    nonzero_color = "blue",
+    highlight_color = "red"
+) {
+
+  stopifnot(is.matrix(my_matrix))
+
+  nr <- nrow(my_matrix)
+  nc <- ncol(my_matrix)
+
+  if (!is.null(highlight_index)) {
+    if (length(highlight_index) != 1 || !is.numeric(highlight_index)) {
+      stop("highlight_index must be a single numeric value.")
+    }
+
+    highlight_index <- as.integer(highlight_index)
+
+    if (highlight_index < 1 || highlight_index > min(nr, nc)) {
+      stop("highlight_index must be between 1 and min(nrow(my_matrix), ncol(my_matrix)).")
+    }
+
+    if (is.null(highlight_label)) {
+      highlight_label <- paste("Index", highlight_index)
+    }
+  }
+
+  df_matrix <- expand.grid(
+    Row = seq_len(nr),
+    Column = seq_len(nc)
+  )
+
+  df_matrix$IsNonZero <- as.vector(my_matrix != 0)
+  df_matrix$FillGroup <- "zero"
+
+  # Default: all nonzero cells are blue
+  df_matrix$FillGroup[df_matrix$IsNonZero] <- "nonzero"
+
+  # Selected row and column are red, but only for nonzero cells
+  if (!is.null(highlight_index)) {
+    sel <- df_matrix$IsNonZero &
+      (df_matrix$Row == highlight_index | df_matrix$Column == highlight_index)
+    df_matrix$FillGroup[sel] <- "highlight"
+  }
+
+  df_matrix$FillGroup <- factor(
+    df_matrix$FillGroup,
+    levels = c("zero", "nonzero", "highlight")
+  )
+
+  off_diag <- df_matrix$Row != df_matrix$Column
+  off_diag_nnz <- sum(df_matrix$IsNonZero[off_diag], na.rm = TRUE)
+  off_diag_tot <- sum(off_diag)
+
+  nnz_pct <- if (off_diag_tot > 0) {
+    round(100 * off_diag_nnz / off_diag_tot, 0)
+  } else {
+    NA
+  }
+
+  x_breaks <- unique(c(1, seq(20, nc, by = 20), nc))
+  y_breaks <- unique(c(1, seq(20, nr, by = 20), nr))
+
+  # Extra room outside the matrix for labels
+  extra_left   <- 1.2
+  extra_bottom <- 1.8
+
+  p <- ggplot(df_matrix, aes(x = Column, y = Row, fill = FillGroup)) +
+    geom_tile(color = "white", linewidth = 0.1) +
+    scale_fill_manual(
+      values = c(
+        zero = zero_color,
+        nonzero = nonzero_color,
+        highlight = highlight_color
+      ),
+      drop = FALSE
+    ) +
+    labs(
+      title = paste0(my_title, ", non-zero = ", nnz_pct, "%"),
+      x = if (identical(x_lab, "")) NULL else x_lab,
+      y = if (identical(y_lab, "")) NULL else y_lab
+    ) +
+    scale_x_continuous(
+      limits = c(0.5 - extra_left, nc + 0.5),
+      breaks = x_breaks,
+      expand = c(0, 0)
+    ) +
+    scale_y_reverse(
+      limits = c(nr + 0.5 + extra_bottom, 0.5),
+      breaks = y_breaks,
+      expand = c(0, 0)
+    ) +
+    coord_fixed(clip = "off") +
+    theme_minimal(base_size = base_size) +
+    theme(
+      panel.grid          = element_blank(),
+      axis.ticks          = element_line(linewidth = 0.2),
+      axis.ticks.length   = grid::unit(tick_length_pt, "pt"),
+      legend.position     = "none",
+      panel.background    = element_rect(fill = "white", color = NA),
+      plot.background     = element_rect(fill = "white", color = NA),
+      plot.title          = element_text(
+        size = title_size,
+        hjust = 0.5,
+        margin = margin(b = 2)
+      ),
+      axis.title.x        = if (identical(x_lab, "")) {
+        element_blank()
+      } else {
+        element_text(
+          size = axis_title_size,
+          margin = margin(t = 2)
+        )
+      },
+      axis.title.y        = if (identical(y_lab, "")) {
+        element_blank()
+      } else {
+        element_text(
+          size = axis_title_size,
+          margin = margin(r = 4)
+        )
+      },
+      axis.text.x         = element_text(size = axis_text_size),
+      axis.text.y         = element_text(size = axis_text_size),
+      plot.title.position = "plot",
+      plot.margin         = margin(5, 5, 30, 25)
+    )
+
+  if (!is.null(highlight_index)) {
+    p <- p +
+      annotate(
+        "text",
+        x = highlight_index,
+        y = nr + 1.1,
+        label = highlight_label,
+        angle = 90,
+        fontface = "bold",
+        hjust = 0,
+        vjust = 0.5,
+        size = axis_text_size / 2.8,
+        color = highlight_color
+      ) +
+      annotate(
+        "text",
+        x = 0.25,
+        y = highlight_index,
+        label = highlight_label,
+        fontface = "bold",
+        hjust = 1,
+        vjust = 0.5,
+        size = axis_text_size / 2.8,
+        color = highlight_color
+      )
+  }
+
+  return(p)
+}
 make_plot_matrix <- function(my_matrix, my_title,
-                             x_lab = "Column", y_lab = "Row",
-                             base_size = 6,         # overall baseline
-                             title_size = 8,
-                             axis_title_size = 6,
-                             axis_text_size = 5,
-                             tick_length_pt = 1) {
+                              x_lab = "Column", y_lab = "Row",
+                              base_size = 6,         # overall baseline
+                              title_size = 8,
+                              axis_title_size = 6,
+                              axis_text_size = 5,
+                              tick_length_pt = 1) {
 
   matrix_data <- my_matrix != 0
   df_matrix <- as.data.frame(as.table(matrix_data))
@@ -334,9 +505,15 @@ make_plot_matrix <- function(my_matrix, my_title,
     geom_tile(color = "white") +
     scale_fill_gradient(low = "white", high = "blue", name = "Non-Zero") +
     labs(
-      title = paste(my_title, ", non-zero = ", round(100*(nnz-dim(matrix_data)[1])/(dim(matrix_data)[1]^2 - dim(matrix_data)[1]),0),'%', sep = ""),
-      x = x_lab,
-      y = y_lab
+      title = paste(
+        my_title, ", non-zero = ",
+        round(100 * (nnz - dim(matrix_data)[1]) /
+                (dim(matrix_data)[1]^2 - dim(matrix_data)[1]), 0),
+        "%",
+        sep = ""
+      ),
+      x = if (identical(x_lab, "")) NULL else x_lab,
+      y = if (identical(y_lab, "")) NULL else y_lab
     ) +
     scale_x_continuous(breaks = seq(0, ncol(my_matrix), by = 20)) +
     scale_y_reverse(breaks = seq(0, nrow(my_matrix), by = 20)) +
@@ -350,32 +527,216 @@ make_plot_matrix <- function(my_matrix, my_title,
       panel.background    = element_rect(fill = "white", color = NA),
       plot.background     = element_rect(fill = "white", color = NA),
       plot.title          = element_text(size = title_size, hjust = 0.5, margin = margin(b = 2)),
-      axis.title.x        = element_text(size = axis_title_size, margin = margin(t = 2)),
-      axis.title.y        = element_text(size = axis_title_size, margin = margin(r = 4)),
+      axis.title.x        = if (identical(x_lab, "")) element_blank() else element_text(size = axis_title_size, margin = margin(t = 2)),
+      axis.title.y        = if (identical(y_lab, "")) element_blank() else element_text(size = axis_title_size, margin = margin(r = 4)),
       axis.text.x         = element_text(size = axis_text_size),
       axis.text.y         = element_text(size = axis_text_size),
       plot.title.position = "plot"
     )
 }
+make_plot_matrix_v2 <- function(my_matrix, my_title,
+                                x_lab = "Column", y_lab = "Row",
+                                base_size = 6,
+                                title_size = 8,
+                                axis_title_size = 6,
+                                axis_text_size = 5,
+                                tick_length_pt = 1,
+                                highlight_col = NULL,
+                                highlight_label = NULL,
+                                diag_color = "grey70",
+                                low_color = "white",
+                                high_color = "blue",
+                                legend_title = "|value|",
+                                show_legend = TRUE) {
 
+  stopifnot(is.matrix(my_matrix))
+
+  nr <- nrow(my_matrix)
+  nc <- ncol(my_matrix)
+
+  # Build plotting data
+  df_matrix <- expand.grid(
+    Row = seq_len(nr),
+    Column = seq_len(nc)
+  )
+  df_matrix$Value <- as.vector(abs(my_matrix))   # magnitude
+  df_matrix$IsDiagonal <- df_matrix$Row == df_matrix$Column
+
+  # Off-diagonal non-zero percentage
+  off_diag_idx <- !df_matrix$IsDiagonal
+  off_diag_nnz <- sum(df_matrix$Value[off_diag_idx] != 0)
+  off_diag_tot <- sum(off_diag_idx)
+  nnz_pct <- if (off_diag_tot > 0) {
+    round(100 * off_diag_nnz / off_diag_tot, 0)
+  } else {
+    NA
+  }
+
+  # Avoid degenerate scale if everything is zero
+  max_mag <- max(df_matrix$Value[off_diag_idx], na.rm = TRUE)
+  if (!is.finite(max_mag) || max_mag == 0) {
+    max_mag <- 1
+  }
+
+  # Nice axis breaks
+  x_breaks <- unique(c(1, seq(20, nc, by = 20), nc))
+  y_breaks <- unique(c(1, seq(20, nr, by = 20), nr))
+
+  p <- ggplot(df_matrix, aes(x = Column, y = Row)) +
+    # First layer: magnitude heatmap
+    geom_tile(aes(fill = Value), color = "white", linewidth = 0.1) +
+    # Second layer: overwrite diagonal in gray
+    geom_tile(
+      data = subset(df_matrix, IsDiagonal),
+      fill = diag_color,
+      color = "white",
+      linewidth = 0.1
+    ) +
+    scale_fill_gradient(
+      low = low_color,
+      high = high_color,
+      limits = c(0, max_mag),
+      name = legend_title
+    ) +
+    labs(
+      title = paste0(my_title, ", non-zero = ", nnz_pct, "%"),
+      x = if (identical(x_lab, "")) NULL else x_lab,
+      y = if (identical(y_lab, "")) NULL else y_lab
+    ) +
+    scale_x_continuous(
+      limits = c(0.5, nc + 0.5),
+      breaks = x_breaks,
+      expand = c(0, 0)
+    ) +
+    scale_y_reverse(
+      limits = c(nr + 0.5, 0.5),
+      breaks = y_breaks,
+      expand = c(0, 0)
+    ) +
+    coord_fixed(clip = "off") +
+    theme_minimal(base_size = base_size) +
+    theme(
+      panel.grid          = element_blank(),
+      axis.ticks          = element_line(linewidth = 0.2),
+      axis.ticks.length   = grid::unit(tick_length_pt, "pt"),
+      legend.position     = if (show_legend) "right" else "none",
+      panel.background    = element_rect(fill = "white", color = NA),
+      plot.background     = element_rect(fill = "white", color = NA),
+      plot.title          = element_text(size = title_size, hjust = 0.5,
+                                         margin = margin(b = 2)),
+      axis.title.x        = if (identical(x_lab, "")) element_blank() else element_text(size = axis_title_size,
+                                                                                        margin = margin(t = 2)),
+      axis.title.y        = if (identical(y_lab, "")) element_blank() else element_text(size = axis_title_size,
+                                                                                        margin = margin(r = 4)),
+      axis.text.x         = element_text(size = axis_text_size),
+      axis.text.y         = element_text(size = axis_text_size),
+      plot.title.position = "plot",
+      plot.margin         = margin(14, 5, 5, 5)
+    )
+
+  # Optional arrow + label pointing to a chosen column
+  if (!is.null(highlight_col)) {
+    if (highlight_col < 1 || highlight_col > nc) {
+      stop("highlight_col must be between 1 and ncol(my_matrix).")
+    }
+
+    if (is.null(highlight_label)) {
+      highlight_label <- paste("Column", highlight_col)
+    }
+
+    p <- p +
+      annotate(
+        "segment",
+        x = highlight_col, xend = highlight_col,
+        y = 0.15, yend = 0.95,
+        linewidth = 0.3,
+        arrow = grid::arrow(length = grid::unit(1.5, "mm"), type = "closed")
+      ) +
+      annotate(
+        "text",
+        x = highlight_col,
+        y = -0.05,
+        label = highlight_label,
+        fontface = "bold",
+        vjust = 1,
+        size = axis_text_size / 2.8
+      )
+  }
+
+  return(p)
+}
 # Helper to make a single sorted-alpha plot
-make_alpha_plot <- function(alpha, title, ylims = NULL) {
+
+make_alpha_plot <- function(alpha, title, ylims = NULL,
+                            latex = FALSE,
+                            names = NULL,
+                            print.number.names = NULL,
+                            decreasing = FALSE,
+                            ylab = expression(alpha)) {
   a <- alpha[is.finite(alpha)]
   stopifnot(length(a) > 0)
-  a <- sort(a)
-  df <- data.frame(idx = seq_along(a), alpha = a)
 
-  p <- ggplot(df, aes(x = idx, y = alpha)) +
-    geom_point(size = 0.9, alpha = 0.9) +
+  # sort (ascending by default)
+  ord <- order(a, decreasing = decreasing)
+  a_s  <- a[ord]
+  nm_s <- if (!is.null(names)) names[ord] else
+    if (!is.null(names(a))) names(a)[ord] else
+      as.character(ord)
+
+  df <- data.frame(rank = seq_along(a_s), value = a_s, name = nm_s)
+
+  # Title handling (optional LaTeX)
+  title_label <- title
+  if (latex) {
+    if (!requireNamespace("latex2exp", quietly = TRUE))
+      stop("Install 'latex2exp' to use latex=TRUE.")
+    title_label <- latex2exp::TeX(title)
+  }
+
+  # Base plot
+  p <- ggplot(df, aes(x = rank, y = value)) +
+    geom_point(alpha = 0.6, size = 0.9) +
     geom_line(linewidth = 0.3) +
-    labs(title = title, x = "Order statistic index", y = expression(alpha)) +
+    labs(title = title_label, x = "Rank", y = ylab) +
     theme_minimal(base_size = 11) +
-    theme(plot.title.position = "plot", panel.grid.minor = element_blank())
+    theme(
+      plot.title.position = "panel",
+      plot.title = element_text(hjust = 0.5),
+      panel.grid.minor = element_blank()
+    )
 
   if (!is.null(ylims)) p <- p + scale_y_continuous(limits = ylims)
+
+  # Optional annotation of the top-K largest values with arrows + names
+  if (!is.null(print.number.names) && print.number.names > 0) {
+    if (!requireNamespace("ggrepel", quietly = TRUE))
+      stop("Install 'ggrepel' to use print.number.names.")
+    k <- min(print.number.names, nrow(df))
+
+    # rows to annotate = largest values regardless of sorting direction
+    sel <- if (!decreasing) (nrow(df) - k + 1):nrow(df) else 1:k
+    labdf <- df[sel, , drop = FALSE]
+
+    # push labels to the right; allow drawing outside panel
+    nudge <- -0.2 * nrow(df)  # 6% of x-range
+    p <- p +
+      ggrepel::geom_text_repel(
+        data = labdf,
+        aes(label = name),
+        nudge_x = nudge,
+        direction = "y",
+        min.segment.length = 0,
+        box.padding = 0.3,
+        segment.alpha = 0.7,
+        segment.color = "grey40",
+        arrow = grid::arrow(length = grid::unit(0.015, "npc"))
+      ) +
+      coord_cartesian(clip = "off") +
+      theme(plot.margin = margin(5.5, 40, 5.5, 5.5))  # room for labels on right
+  }
+
   p
 }
-
 # Build a grid of alpha plots from a named list
 make_alpha_grid <- function(alpha_list, ncol = 2, common_y = TRUE) {
   stopifnot(length(alpha_list) > 0)

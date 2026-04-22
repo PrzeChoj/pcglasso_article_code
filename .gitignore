@@ -1,0 +1,25 @@
+# ----------------------------
+# R / RStudio
+# ----------------------------
+.Rhistory
+.Rapp.history
+.RData
+.Ruserdata
+.Rproj.user/
+
+# Temporary files
+*.Rproj.user
+*.Rhistory
+*.RData
+*.Ruserdata
+*~
+
+
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+
+*.png
+*.pdf
