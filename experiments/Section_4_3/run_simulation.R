@@ -1,3 +1,5 @@
+# 1 hour 20 minutes of 100 cores of AMD EPYC Rome 7742
+
 # run_simulation.R
 #
 # Main driver for the Section 4.3 / Appendix B.2 simulation study.
