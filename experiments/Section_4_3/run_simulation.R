@@ -32,8 +32,7 @@ source("./experiments/Section_4_3/estimation_methods.R")
 # ---- Parameters ----
 
 ns               <- c(200, 500, 1000, 5000)
-#sim              <- 200            # replications per sample size
-sim              <- 2
+sim              <- 200            # replications per sample size
 nlambda          <- 50             # size of lambda grid (passed to run_experiments via ...)
 lambda.min.ratio <- 0.01           # (passed to run_experiments via ...)
 alpha_grid       <- 0              # PC-GLasso penalty on diagonal: 0 means standard GLasso penalty
