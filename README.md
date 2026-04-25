@@ -19,8 +19,8 @@ install.packages(c(
   "yaml", "pbapply", "microbenchmark", "parallel", "MASS"
 ))
 
-# Our method (pcglassoFast) from GitHub
-remotes::install_github("PrzeChoj/pcglassoFast")
+# Our method (pcglassoFast) from GitHub, version used for this analysis
+remotes::install_github("PrzeChoj/pcglassoFast", ref = "v0.4.0")
 
 # Carter's PCGLASSO algorithm (for comparison) from GitHub
 remotes::install_github("JackStorrorCarter/PCGLASSO")
