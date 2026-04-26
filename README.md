@@ -164,28 +164,29 @@ source("experiments/Appendix_D/diag_newton.R")
 
 ## Citation
 
-If you use this code to reproduce results or reference the experiments, please cite:
+If you use this repository to reproduce results or refer to the experiments, please cite the paper:
 
 ```bibtex
 @misc{bogdan2025identifying,
-  title={Identifying Network Hubs with the Partial-Correlation Graphical LASSO},
+  title={Identifying Network Hubs with the Partial Correlation Graphical LASSO},
   author={Bogdan, Małgorzata and Chojecki, Adam and Hejný, Ivan and 
           Kołodziejek, Bartosz and Wallin, Jonas},
   year={2025},
-  eprint={2601.16945},
+  eprint={2508.12258},
   archivePrefix={arXiv},
   primaryClass={math.ST},
-  url={https://arxiv.org/abs/2601.16945}
+  url={https://arxiv.org/abs/2508.12258}
 }
 ```
 
-And cite the package:
+If you use the `pcglassoFast` package, please cite:
 
 ```bibtex
-@misc{chojecki2025pcglassofast,
-  title={pcglassoFast: Fast Solver for Partial-Correlation Graphical LASSO},
-  author={Chojecki, Adam},
-  year={2025},
-  url={https://github.com/PrzeChoj/pcglassoFast}
+@misc{chojeckiwallin2025pcglassofast,
+  title  = {{pcglassoFast}: Fast Partial Correlation Graphical LASSO},
+  author = {Chojecki, Adam and Wallin, Jonas},
+  year   = {2025},
+  url    = {https://github.com/PrzeChoj/pcglassoFast},
+  note   = {R package}
 }
 ```
