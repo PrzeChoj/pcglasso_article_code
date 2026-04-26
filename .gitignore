@@ -15,11 +15,9 @@
 *~
 
 
-*/.DS_Store
+*.DS_Store
 Thumbs.db
 .vscode/
 .idea/
 
 
-*.png
-*.pdf
