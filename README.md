@@ -1,9 +1,9 @@
 # Identifying Network Hubs with the Partial-Correlation Graphical LASSO
 
-This repository contains code to reproduce all experiments, figures, and tables from the paper **"Identifying Network Hubs with the Partial-Correlation Graphical LASSO"** by Bogdan, Chojecki, Hejný, Kołodziejek, and Wallin.
+This repository contains code to reproduce all experiments, figures, and tables from the paper **"Identifying Network Hubs with the Partial-Correlation Graphical LASSO"** by Anonymous et al.
 
 **Paper**: https://arxiv.org/abs/2601.16945  
-**Method**: [pcglassoFast](https://github.com/PrzeChoj/pcglassoFast) R package
+**Method**: [pcglassoFast](https://github.com/anonymous/pcglassoFast) R package
 
 ---
 
@@ -19,8 +19,9 @@ install.packages(c(
   "yaml", "pbapply", "microbenchmark", "parallel", "MASS"
 ))
 
-# Our method (pcglassoFast) from GitHub, version used for this analysis
-remotes::install_github("PrzeChoj/pcglassoFast", ref = "v0.4.0")
+# Our method (pcglassoFast) - install from the local package folder
+library(devtools)
+install_local("/path/to/pcglassoFast")
 
 # Carter's PCGLASSO algorithm (for comparison) from GitHub
 remotes::install_github("JackStorrorCarter/PCGLASSO")
@@ -164,29 +165,4 @@ source("experiments/Appendix_D/diag_newton.R")
 
 ## Citation
 
-If you use this repository to reproduce results or refer to the experiments, please cite the paper:
-
-```bibtex
-@misc{bogdan2025identifying,
-  title={Identifying Network Hubs with the Partial Correlation Graphical LASSO},
-  author={Bogdan, Małgorzata and Chojecki, Adam and Hejný, Ivan and 
-          Kołodziejek, Bartosz and Wallin, Jonas},
-  year={2025},
-  eprint={2508.12258},
-  archivePrefix={arXiv},
-  primaryClass={math.ST},
-  url={https://arxiv.org/abs/2508.12258}
-}
-```
-
-If you use the `pcglassoFast` package, please cite:
-
-```bibtex
-@misc{chojeckiwallin2025pcglassofast,
-  title  = {{pcglassoFast}: Fast Partial Correlation Graphical LASSO},
-  author = {Chojecki, Adam and Wallin, Jonas},
-  year   = {2025},
-  url    = {https://github.com/PrzeChoj/pcglassoFast},
-  note   = {R package}
-}
-```
+This code is provided for reproducibility purposes.

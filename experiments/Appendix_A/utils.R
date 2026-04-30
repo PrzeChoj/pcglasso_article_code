@@ -1,5 +1,6 @@
 # devtools::install_github("JackStorrorCarter/PCGLASSO")
-# devtools::install_github("PrzeChoj/pcglassoFast")
+# library(devtools)
+# install_local("/path/to/pcglassoFast")
 
 library(PCGLASSO)
 library(pcglassoFast)

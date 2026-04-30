@@ -10,12 +10,13 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 
-# remotes::install_github("PrzeChoj/pcglassoFast", ref = "DOptimizationTime")
+# library(devtools)
+# install_local("/path/to/pcglassoFast_DOptimizationTime")
 library(pcglassoFast)
 
 # test whether proper pcglassoFast package version is installed
 if (!("full_time_D_optim" %in% names(pcglassoFast(S = matrix(c(1.1, 0, 0, 1.1), nrow = 2), 0.1, 0.1)))) {
-  stop('Special version of `pcglassoFast` package is needed for this script: `remotes::install_github("PrzeChoj/pcglassoFast", ref = "DOptimizationTime")`')
+  stop('Special version of `pcglassoFast` package (pcglassoFast_DOptimizationTime) is needed for this script.')
 }
 
 
