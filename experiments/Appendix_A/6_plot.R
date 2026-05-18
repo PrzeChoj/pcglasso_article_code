@@ -99,11 +99,12 @@ for (K_val in K_vals) {
 sol_order <- c(
   "pcglasso / C", "pcglasso / I",
   "pcglassoFast_Dual / C", "pcglassoFast_Dual / I",
-  "pcglassoFast_Primal / C", "pcglassoFast_Primal / I"
+  "pcglassoFast_Primal / C", "pcglassoFast_Primal / I",
+  "pcglassoFast_PrimalDual / C", "pcglassoFast_PrimalDual / I"
 )
-sol_order_2x3 <- c(
-  "pcglasso / C", "pcglassoFast_Dual / C", "pcglassoFast_Primal / C",
-  "pcglasso / I", "pcglassoFast_Dual / I", "pcglassoFast_Primal / I"
+sol_order_2x4 <- c(
+  "pcglasso / C", "pcglassoFast_Dual / C", "pcglassoFast_Primal / C", "pcglassoFast_PrimalDual / C",
+  "pcglasso / I", "pcglassoFast_Dual / I", "pcglassoFast_Primal / I", "pcglassoFast_PrimalDual / I"
 )
 
 K_vals <- unique(df_raw_filtered$K_structure)

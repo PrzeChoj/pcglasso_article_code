@@ -10,7 +10,7 @@ brighten <- function(cols, amount = 0.45) {
 }
 
 make_matrix_legend <- function() {
-  solvers <- c("pcglasso", "pcglassoFast_Dual", "pcglassoFast_Primal")
+  solvers <- c("pcglasso", "pcglassoFast_Dual", "pcglassoFast_Primal", "pcglassoFast_PrimalDual")
 
   base_cols <- setNames(scales::hue_pal()(length(solvers)), solvers)
   bright_cols <- setNames(brighten(base_cols, amount = 0.45), solvers)
@@ -33,13 +33,14 @@ make_matrix_legend <- function() {
     scale_x_discrete(expand = expansion(mult = c(0.05, 0.05))) +
     coord_fixed(ratio = 1, clip = "off") +
     annotate("text",
-      x = 2, y = 2.65, label = "starting point / algorithm",
+      x = 2.5, y = 2.65, label = "starting point / algorithm",
       size = 4, hjust = 0.5
     ) +
     expand_limits(y = 2.8) +
     annotate("text", x = 1, y = 0.05, label = "pcglasso", angle = 90, size = 4) +
     annotate("text", x = 2, y = -0.5, label = "pcglassoFast_Dual", angle = 90, size = 4) +
     annotate("text", x = 3, y = -0.6, label = "pcglassoFast_Primal", angle = 90, size = 4) +
+    annotate("text", x = 4, y = -0.8, label = "pcglassoFast_PrimalDual", angle = 90, size = 4) +
     expand_limits(y = 0.35) +
     theme_void(base_size = 11) +
     theme(

@@ -115,6 +115,14 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
       tolerance = tol,
       max_iter = 10000
     )$Sinv,
+    pcglassoFast_PrimalDual = pcglassoFast(
+      S,
+      lambda = lambda, alpha = alpha,
+      R0 = cov2cor(starting_matrix),
+      solver_R = "primal_dual",
+      tolerance = tol,
+      max_iter = 10000
+    )$Sinv,
     stop("Unknown solver: ", solver)
   )
 
