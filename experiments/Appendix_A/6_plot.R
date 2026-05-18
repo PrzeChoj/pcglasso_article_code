@@ -12,6 +12,7 @@ library(ragg)
 source("./experiments/Appendix_A/utils.R")
 source("./experiments/Appendix_A/0_parameters.R")
 source("./experiments/Appendix_A/4_functions_plot.R")
+M <- 2
 
 load("./experiments/Appendix_A/res_data/instances.RData")
 

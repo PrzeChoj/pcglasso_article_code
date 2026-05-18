@@ -8,6 +8,8 @@ library(readr)
 source("./experiments/Appendix_A/0_parameters.R")
 source("./experiments/Appendix_A/2_functions_simulations.R")
 
+M <- 2
+
 data_dir <- "./experiments/Appendix_A/res_data"
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
