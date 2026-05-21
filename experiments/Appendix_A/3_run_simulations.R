@@ -11,7 +11,8 @@ source("./experiments/Appendix_A/2_functions_simulations.R")
 data_dir <- "./experiments/Appendix_A/res_data"
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
-n_cores <- max(1, detectCores(logical = FALSE) - 1)
+#n_cores <- max(1, detectCores(logical = FALSE) - 1)
+n_cores <- 88
 
 set.seed(1234)
 Sys.setenv(OMP_NUM_THREADS = 1)
@@ -35,6 +36,8 @@ rownames(param_grid_M) <- NULL
 
 param_grid_M <- param_grid_M %>%
   arrange(desc(p), desc(-log10(tolerance)))
+
+nrow(param_grid_M)
 
 start_time <- Sys.time()
 raw_list <- pbmclapply(
