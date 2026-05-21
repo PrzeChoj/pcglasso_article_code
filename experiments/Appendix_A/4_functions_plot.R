@@ -10,7 +10,7 @@ brighten <- function(cols, amount = 0.45) {
 }
 
 make_matrix_legend <- function() {
-  solvers <- c("pcglasso", "pcglassoFast_Dual", "pcglassoFast_Primal", "pcglassoFast_PrimalDual")
+  solvers <- c("pcglasso", "pcglassoFast_Dual", "pcglassoFast_Primal", "pcglassoFast_PrimalDual", "path_up", "path_down")
 
   base_cols <- setNames(scales::hue_pal()(length(solvers)), solvers)
   bright_cols <- setNames(brighten(base_cols, amount = 0.45), solvers)

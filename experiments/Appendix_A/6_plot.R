@@ -101,7 +101,9 @@ sol_order <- c(
   "pcglasso / C", "pcglasso / I",
   "pcglassoFast_Dual / C", "pcglassoFast_Dual / I",
   "pcglassoFast_Primal / C", "pcglassoFast_Primal / I",
-  "pcglassoFast_PrimalDual / C", "pcglassoFast_PrimalDual / I"
+  "pcglassoFast_PrimalDual / C", "pcglassoFast_PrimalDual / I",
+  "path_up / C", "path_up / I",
+  "path_down / C", "path_down / I"
 )
 sol_order_2x4 <- c(
   "pcglasso / C", "pcglassoFast_Dual / C", "pcglassoFast_Primal / C", "pcglassoFast_PrimalDual / C",

@@ -123,10 +123,58 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
       tolerance = tol,
       max_iter = 10000
     )$Sinv,
+    path_up = path_up(
+      S,
+      lambda = lambda, alpha = alpha,
+      R0 = cov2cor(starting_matrix),
+      solver_R = "dual",
+      tolerance = tol,
+      max_iter = 10000
+    ),
+    path_down = path_down(
+      S,
+      lambda = lambda, alpha = alpha,
+      R0 = cov2cor(starting_matrix),
+      solver_R = "dual",
+      tolerance = tol,
+      max_iter = 10000
+    ),
     stop("Unknown solver: ", solver)
   )
 
   pcglasso_goal_function(S, lambda, alpha, Sinv)
+}
+
+path_up <- function(S, lambda, alpha, R0, solver_R, tolerance, max_iter) {
+  lam_max <- lambda
+  lam_min <- 0.001 * lam_max
+  lambdas <- exp(seq(log(lam_min), log(lam_max), length.out = 30))
+  sol_path <- pcglassoPath(
+    S,
+    alpha,
+    lambdas = lambdas,
+    R0 = R0,
+    solver_R = solver_R,
+    tolerance = tolerance,
+    max_iter = max_iter
+  )
+  sol_path$Wi_path[[length(lambdas)]]
+}
+
+path_down <- function(S, lambda, alpha, R0, solver_R, tolerance, max_iter) {
+  lam_min <- lambda
+  lam_max <- lam_min * 1000
+  lambdas <- exp(seq(log(lam_max), log(lam_min), length.out = 30))
+  sol_path <- pcglassoPath(
+    S,
+    alpha,
+    lambdas = lambdas,
+    R0 = R0,
+    solver_R = solver_R,
+    tolerance = tolerance,
+    max_iter = max_iter
+  )
+  sol_path$Wi_path[[length(lambdas)]]
 }
 
 # best method table
