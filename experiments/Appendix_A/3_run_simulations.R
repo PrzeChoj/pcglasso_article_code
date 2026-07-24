@@ -12,7 +12,7 @@ data_dir <- "./experiments/Appendix_A/res_data"
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
 #n_cores <- max(1, detectCores(logical = FALSE) - 1)
-n_cores <- 88
+n_cores <- 48
 
 set.seed(1234)
 Sys.setenv(OMP_NUM_THREADS = 1)
