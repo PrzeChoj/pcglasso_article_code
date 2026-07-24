@@ -1,4 +1,4 @@
-# 1 minute of 7 cores of Apple M2
+# 6.5 mins of 7 cores of Apple M2
 
 library(dplyr)
 library(readr)
@@ -34,7 +34,7 @@ stopifnot(all(is.finite(best_values)))
 group_keys <- group_keys %>%
   mutate(best_value = as.numeric(best_values))
 
-out_path <- file.path(data_dir, sprintf("group_keys_with_best_value_M%d.csv", M))
+out_path <- file.path(data_dir, "group_keys_with_best_value.csv")
 write_csv(group_keys, out_path)
 message("Saved: ", out_path)
 

@@ -45,7 +45,7 @@ df_all <- df_all %>%
     init = starting_point
   )
 
-group_keys_path <- file.path(data_dir, sprintf("group_keys_with_best_value_M%d.csv", M))
+group_keys_path <- file.path(data_dir, "group_keys_with_best_value.csv")
 group_keys <- read_csv(group_keys_path, show_col_types = FALSE)
 stopifnot(all(c("p", "lambda", "alpha", "K_structure", "best_value") %in% names(group_keys)))
 
