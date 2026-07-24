@@ -7,7 +7,6 @@ library(future.apply)
 source("./experiments/Appendix_A/utils.R")
 source("./experiments/Appendix_A/0_parameters.R")
 source("./experiments/Appendix_A/4_functions_plot.R")
-M <- 2
 
 data_dir <- "./experiments/Appendix_A/res_data"
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
