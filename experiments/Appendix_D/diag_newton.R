@@ -10,7 +10,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 
-# remotes::install_github("PrzeChoj/pcglassoFast", ref = "DOptimizationTime")
+# remotes::install_github("PrzeChoj/pcglassoFast", ref = "jcgs-experiments")
 library(pcglassoFast)
 
 # test whether proper pcglassoFast package version is installed
