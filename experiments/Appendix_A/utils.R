@@ -103,6 +103,7 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
       S,
       lambda = lambda, alpha = alpha,
       R0 = cov2cor(starting_matrix),
+      D0 = sqrt(diag(starting_matrix)),
       solver_R = "Dual",
       tolerance = tol,
       max_iter = 10000
@@ -111,6 +112,7 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
       S,
       lambda = lambda, alpha = alpha,
       R0 = cov2cor(starting_matrix),
+      D0 = sqrt(diag(starting_matrix)),
       solver_R = "Primal",
       tolerance = tol,
       max_iter = 10000
@@ -119,6 +121,7 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
       S,
       lambda = lambda, alpha = alpha,
       R0 = cov2cor(starting_matrix),
+      D0 = sqrt(diag(starting_matrix)),
       solver_R = "primal_dual",
       tolerance = tol,
       max_iter = 10000
@@ -127,6 +130,7 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
       S,
       lambda = lambda, alpha = alpha,
       R0 = cov2cor(starting_matrix),
+      D0 = sqrt(diag(starting_matrix)),
       solver_R = "dual",
       tolerance = tol,
       max_iter = 10000
@@ -135,6 +139,7 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
       S,
       lambda = lambda, alpha = alpha,
       R0 = cov2cor(starting_matrix),
+      D0 = sqrt(diag(starting_matrix)),
       solver_R = "dual",
       tolerance = tol,
       max_iter = 10000
@@ -145,7 +150,7 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
   pcglasso_goal_function(S, lambda, alpha, Sinv)
 }
 
-path_up <- function(S, lambda, alpha, R0, solver_R, tolerance, max_iter) {
+path_up <- function(S, lambda, alpha, R0, solver_R, tolerance, max_iter, D0 = 1 / sqrt(diag(S))) {
   lam_max <- lambda
   lam_min <- 0.001 * lam_max
   lambdas <- exp(seq(log(lam_min), log(lam_max), length.out = 30))
@@ -154,6 +159,7 @@ path_up <- function(S, lambda, alpha, R0, solver_R, tolerance, max_iter) {
     alpha,
     lambdas = lambdas,
     R0 = R0,
+    D0 = D0,
     solver_R = solver_R,
     tolerance = tolerance,
     max_iter = max_iter
@@ -161,7 +167,7 @@ path_up <- function(S, lambda, alpha, R0, solver_R, tolerance, max_iter) {
   sol_path$Wi_path[[length(lambdas)]]
 }
 
-path_down <- function(S, lambda, alpha, R0, solver_R, tolerance, max_iter) {
+path_down <- function(S, lambda, alpha, R0, solver_R, tolerance, max_iter, D0 = 1 / sqrt(diag(S))) {
   lam_min <- lambda
   lam_max <- lam_min * 1000
   lambdas <- exp(seq(log(lam_max), log(lam_min), length.out = 30))
@@ -170,6 +176,7 @@ path_down <- function(S, lambda, alpha, R0, solver_R, tolerance, max_iter) {
     alpha,
     lambdas = lambdas,
     R0 = R0,
+    D0 = D0,
     solver_R = solver_R,
     tolerance = tolerance,
     max_iter = max_iter
