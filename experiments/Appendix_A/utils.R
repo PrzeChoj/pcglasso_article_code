@@ -11,7 +11,7 @@ pcglasso_goal_function <- function(S, lambda, alpha, Sinv) {
   p <- nrow(delta_matrix)
 
   theta_mat <- diag(theta_diag)
-  log_det <- as.numeric(determinant(delta_matrix, logarithm = TRUE)$modulus)
+  log_det <- 2 * sum(log(diag(chol(delta_matrix))))
   quad_term <- sum(diag(S %*% theta_mat %*% delta_matrix %*% theta_mat))
   l1_pen <- lambda * sum(abs(delta_matrix - diag(p)))
 
