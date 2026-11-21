@@ -15,6 +15,7 @@ source("./experiments/Appendix_A/4_functions_plot.R")
 load("./experiments/Appendix_A/res_data/instances.RData")
 
 data_dir <- "./experiments/Appendix_A/res_data"
+plot_dir <- "./experiments/Appendix_A/plots"
 out_dir <- "./outputs"
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -110,6 +111,22 @@ make_type_2_single_plot <- function(df_sub, K_val) {
     )
 }
 
+save_combined_plot <- function(plots, filename) {
+  previous_theme <- theme_update(legend.position = "bottom")
+  on.exit(theme_set(previous_theme))
+
+  ggsave(
+    filename = filename,
+    plot = wrap_plots(plots, ncol = 2, guides = "collect"),
+    device = ragg::agg_png,
+    width = 12,
+    height = 8,
+    units = "in",
+    dpi = 150
+  )
+  message("Saved: ", filename)
+}
+
 # ------------------------------------------------------------------
 # Combined figure 1: median_time_vs_p
 # ------------------------------------------------------------------
@@ -124,20 +141,7 @@ plots_type_2 <- lapply(selected_graphs, function(K_val) {
   make_type_2_single_plot(df_sub, K_val)
 })
 
-combined_type_2 <- wrap_plots(plots_type_2, ncol = 2, guides = "collect") &
-  theme(legend.position = "bottom")
-
-ggsave(
-  filename = file.path(out_dir, "Appendix_A_median_time_vs_p.png"),
-  plot = combined_type_2,
-  device = ragg::agg_png,
-  width = 12,
-  height = 8,
-  units = "in",
-  dpi = 150
-)
-
-message("Saved: ", file.path(out_dir, "Appendix_A_median_time_vs_p.png"))
+save_combined_plot(plots_type_2, file.path(out_dir, "Appendix_A_median_time_vs_p.png"))
 
 # ------------------------------------------------------------------
 # Combined figure 2: selected type_1 plots
@@ -172,20 +176,7 @@ idx <- match(
 
 plots_type_1 <- lapply(idx, make_type_1_single_plot)
 
-combined_type_1 <- wrap_plots(plots_type_1, ncol = 2, guides = "collect") &
-  theme(legend.position = "bottom")
-
-ggsave(
-  filename = file.path(out_dir, "Appendix_A_p200_lambda0_1_alpha0.png"),
-  plot = combined_type_1,
-  device = ragg::agg_png,
-  width = 12,
-  height = 8,
-  units = "in",
-  dpi = 150
-)
-
-message("Saved: ", file.path(out_dir, "Appendix_A_p200_lambda0_1_alpha0.png"))
+save_combined_plot(plots_type_1, file.path(out_dir, "Appendix_A_p200_lambda0_1_alpha0.png"))
 
 end_time <- Sys.time()
 message("Done.")
