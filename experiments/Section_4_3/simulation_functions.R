@@ -164,8 +164,8 @@ summarize_plot_results <- function(results) {
 
   results$false_pos_rate <- results$false_non0_rate
   results$false_neg_rate <- results$false_0_rate
-  results$true_pos_rate  <- results$true_non0_rate
-  results$true_neg_rate  <- results$true_0_rate
+  results$true_pos_rate  <- results$true_0_rate
+  results$true_neg_rate  <- results$true_non0_rate
 
   results$method <- as.factor(results$method)
 
