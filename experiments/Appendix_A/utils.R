@@ -103,6 +103,7 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
       S,
       lambda = lambda, alpha = alpha,
       R0 = cov2cor(starting_matrix),
+      D0 = sqrt(diag(starting_matrix)),
       solver_R = "Dual",
       tolerance = tol,
       max_iter = 10000
@@ -111,6 +112,7 @@ value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
       S,
       lambda = lambda, alpha = alpha,
       R0 = cov2cor(starting_matrix),
+      D0 = sqrt(diag(starting_matrix)),
       solver_R = "Primal",
       tolerance = tol,
       max_iter = 10000
