@@ -83,13 +83,27 @@ S_from_K_star <- function(K_star, n) {
   S
 }
 
+carter_default_precision <- function(S) {
+  eig <- eigen(cov2cor(S), symmetric = TRUE)
+  values <- eig$values
+  smallest <- min(values)
+  if (smallest < -1e-8) stop("S is not positive semidefinite")
+
+  # PCGLASSO 0.0.2 shifts the entire spectrum when its minimum is below 1e-8.
+  if (smallest < 1e-8) values <- values + 1 - smallest
+  precision_cor <- tcrossprod(sweep(eig$vectors, 2L, sqrt(values), "/"))
+
+  # Return the starting precision on the original scale of S.
+  precision_cor / tcrossprod(sqrt(diag(S)))
+}
+
 value_after_optimization <- function(S, solver, start, tol, lambda, alpha) {
   p <- nrow(S)
   c_parameter <- 1 - alpha
 
   starting_matrix <- switch(start,
     I = diag(p),
-    C = solve(S),
+    C = if (solver == "pcglasso") NULL else carter_default_precision(S),
     stop("Unknown start: ", start)
   )
 
